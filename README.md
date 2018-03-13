@@ -23,27 +23,27 @@ fixed-top-left | fixed-top | fixed-top-right
 fixed-left     | canvas    | fixed-right
 fixed-bottom-left | fixed-bottom | fixed-bottom-right
 
-The corners are only shown, if tow adjacent fixed areas are shown. 
+The corners are only shown, if tow adjacent fixed areas are shown but can also be configured in
+detail. 
 
 #### Implementation
 
 In general there is no concept of sticky positioning or one-direction fixed positioning in CSS. 
-One has to choose from relative or fixed positioning the fixed parts and synchronize the other 
-direction manually through code.
+One has to choose from relative, absolute or fixed positioning the fixed parts and synchronize 
+the other direction manually through code.
 
 Pure CSS fixed positioning is only possible, if the table is scrollable in one direction only. 
 In this case the fixed parts can be positioned outside the scrollable container. 
-This is, however, not sufficient to implement a table, which can visualzie an arbitrary number 
+This is, however, not sufficient to implement a table, which can visualize an arbitrary number 
 of columns and rows. 
 In this case, CSS [sticky](https://www.w3schools.com/cssref/pr_class_position.asp) positioning 
-is not event sufficient, apart from the problem, that IE 
-does not support sticky positioning. 
+is not even sufficient, apart from the problem, that IE does not support sticky positioning. 
 
 ##### Positioning Strategy
 
 In general there are two options, to position fixed rows and columns. Either one 
 positions the sections relative and updates the position when scrolling (along the axis)
-or one positions elements fixed and updates normal to the axis. Since the problem is the 
+or one positions elements absolute and updates normal to the axis. Since the problem is the 
 same for fixed rows and columns, the term header shall be used in the following for brevity.
 
 In pseudo code one could write either:
@@ -53,7 +53,7 @@ In pseudo code one could write either:
   
 or  
 
-    // header is positioned fixed
+    // header is positioned absolute
     header.style.left = -container.scrollLeft 
     
 It turns out that the latter positioning strategy leads to a much smoother scrolling experience 
@@ -63,8 +63,18 @@ clicking on the scrollbar and using a touch device. The scroll events are handle
 and lead to significant variations on how smooth the scroll events are synchronized to the
 position updates.
 
-With fixed positioning it is, however, much more difficult to get the overflow and stacking correctly handled. 
-As it turns out, it is not easy to get fixed content behind the scroll bars in a reliable way.
+Instead of simply setting the `left` and `top` properties, one can also work with CSS transformations, 
+such as `translate` or `translated3d`. There are rumors, that `translated3d` can be faster, since the 
+browser should transfer the computation to the GPU, but this was not tested or verified.
+
+Apart form relative and absolute positioning one can also use fixed positioning. However, this 
+has the problem, that the scroll events on the window interfere with the scroll events on the container. 
+Hence, this approach was discarded.
+
+In the end, a combination of relative and fixed positioning is used to get best results. 
+The fixed areas must be embedded in another container to handle the overflow, then these fixed containers
+must be positioned absolutely w.r.t. the hosting element, which is not itself scrollable. This finally 
+leads to a rather smooth scrolling experience.
 
 ###### Scroll Synchronisation
 
