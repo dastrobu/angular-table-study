@@ -1,4 +1,15 @@
-import {AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, NgZone, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {
+    AfterViewInit,
+    ChangeDetectionStrategy,
+    ChangeDetectorRef,
+    Component,
+    ElementRef,
+    Input,
+    NgZone,
+    OnDestroy,
+    OnInit,
+    ViewChild
+} from '@angular/core';
 import {BoxSize, getScrollbarWidth} from './utils';
 import {isInternetExplorer} from './browser';
 
@@ -51,6 +62,7 @@ class FullMatrixViewConfig implements MatrixViewConfig {
 }
 
 @Component({
+    changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'matrix-view',
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
@@ -267,8 +279,6 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
         this.updateViewportSize();
         this.changeDetectorRef.detectChanges();
         this.updateViewportSize();
-        // init at zero scroll position
-        this.updateFixedPositions(0, 0);
     }
 
     ngOnDestroy(): void {
@@ -277,23 +287,6 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
             this.container.nativeElement.removeEventListener('scroll', this.scrollListener);
         }
     }
-
-    private updateFixedPositions(scrollLeft: number, scrollTop: number) {
-        const canvasSize = this.canvasSize;
-        // this.fixedRight.nativeElement.style.left = (left + this.viewportSize.width - this.fixedLeftWidth / 2) + 'px';
-
-        // this.fixedTop.nativeElement.style.left = -scrollLeft + 'px';
-        // this.fixedBottom.nativeElement.style.left = -scrollLeft + 'px';
-        // this.fixedLeft.nativeElement.style.top = -scrollTop + 'px';
-        // this.fixedRight.nativeElement.style.top = -scrollTop + 'px';
-    }
-
-    // private get canvasSize(): BoxSize {
-    //     const computedStyle = getComputedStyle(this.canvas.nativeElement);
-    //     const canvasWidth = Number(computedStyle.width.replace("px", ""));
-    //     const canvasHeight = Number(computedStyle.height.replace("px", ""));
-    //     return {width: canvasWidth, height: canvasHeight};
-    // }
 
     /**
      * updates {@link #containerSize} and {@link #viewportSize}
