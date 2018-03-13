@@ -1,7 +1,9 @@
 <div #container class="container" (scroll)="scroll()">
     <div #canvas class="canvas"
-         [style.width]="numCols*colWidth + 'px'"
-         [style.height]="numRows*rowHeight + 'px'"
+         [style.width]="canvasSize.width + 'px'"
+         [style.height]="canvasSize.height + 'px'"
+         [style.min-width]="viewportSize.width + 'px'"
+         [style.min-height]="viewportSize.height + 'px'"
     >
         <div class="cell"
              *ngFor="let cell of cells"
@@ -10,56 +12,104 @@
         >
             Foo {{cell.row}}, {{cell.col}}
         </div>
-        <div #fixedTop class="fixed fixed-top"
+        <div *ngIf="fullConfig.showFixed.top"
+             #fixedTop class="fixed fixed-top"
              [style.height]="fixedTopHeight + 'px'"
         >
-            fixed top
-            fixed top
-            fixed top
+            <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+            <!-- one pixel is added to the canvas size, to account for rounding errors -->
+            <div #canvasTop class="canvas-top"
+                 [style.width]="canvasSize.width + 1 + 'px'"
+                 [style.height]="canvasSize.height + 'px'"
+                 [style.min-width]="viewportSize.width + 1 + 'px'"
+                 [style.min-height]="viewportSize.height + 'px'"
+            >
+                fixed top 1
+                fixed top 2
+                fixed top 3
+                fixed top 4
+                fixed top 5
+                fixed top 6
+                fixed top 7
+                fixed top 8
+            </div>
         </div>
-        <div #fixedRight class="fixed fixed-right"
-             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, 0, 0)'"
+        <div *ngIf="fullConfig.showFixed.right"
+             #fixedRight class="fixed fixed-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth + 1 ) + 'px, 0, 0)'"
              [style.width]="fixedRightWidth + 'px'"
         >
-            fixed right<br>
-            fixed right<br>
-            fixed right<br>
+            <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+            <!-- one pixel is added to the canvas size, to account for rounding errors -->
+            <div #canvasRight class="canvas-right"
+                 [style.width]="canvasSize.width + 'px'"
+                 [style.height]="canvasSize.height + 'px'"
+                 [style.min-width]="viewportSize.width + 'px'"
+                 [style.min-height]="viewportSize.height + 'px'"
+            >
+                fixed right 1 <br>
+                fixed right 2 <br>
+                fixed right 3 <br>
+            </div>
         </div>
-        <div #fixedBottom class="fixed fixed-bottom"
+        <div *ngIf="fullConfig.showFixed.bottom"
+             #fixedBottom class="fixed fixed-bottom"
              [style.transform]="'translate3d(0, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
              [style.height]="fixedBottomHeight  + 'px'"
         >
-            fixed bottom
-            fixed bottom
-            fixed bottom
+            <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+            <!-- one pixel is added to the canvas size, to account for rounding errors -->
+            <div #canvasBottom class="canvas-bottom"
+                 [style.width]="canvasSize.width + 1 + 'px'"
+                 [style.height]="canvasSize.height + 'px'"
+                 [style.min-width]="viewportSize.width + 1 + 'px'"
+                 [style.min-height]="viewportSize.height + 'px'"
+            >
+                fixed bottom
+                fixed bottom
+                fixed bottom
+            </div>
         </div>
-        <div #fixedLeft class="fixed fixed-left"
+        <div *ngIf="fullConfig.showFixed.left"
+             #fixedLeft class="fixed fixed-left"
              [style.width]="fixedLeftWidth  + 'px'"
         >
-            fixed left<br>
-            fixed left<br>
-            fixed left<br>
-            fixed left<br>
+            <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+            <!-- one pixel is added to the canvas size, to account for rounding errors -->
+            <div #canvasLeft class="canvas-left"
+                 [style.width]="canvasSize.width + 'px'"
+                 [style.height]="canvasSize.height + 'px'"
+                 [style.min-width]="viewportSize.width + 'px'"
+                 [style.min-height]="viewportSize.height + 'px'"
+            >
+                fixed left 1 <br>
+                fixed left 2 <br>
+                fixed left 3 <br>
+            </div>
         </div>
-        <div #fixedTopRight class="fixed fixed-top-right"
-             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, 0, 0)'"
+        <div *ngIf="fullConfig.showFixedCorners.topRight"
+             #fixedTopRight class="fixed fixed-top-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth + 1) + 'px, 0, 0)'"
              [style.height]="fixedTopHeight  + 'px'"
              [style.width]="fixedRightWidth + 'px'"
         >
         </div>
-        <div #fixedBottomRight class="fixed fixed-bottom-right"
-             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
+        <div *ngIf="fullConfig.showFixedCorners.bottomRight"
+             #fixedBottomRight class="fixed fixed-bottom-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth + 1) + 'px, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
              [style.width]="fixedRightWidth + 'px'"
              [style.height]="fixedBottomHeight  + 'px'"
         >
         </div>
-        <div #fixedBottomLeft class="fixed fixed-bottom-left"
+        <div *ngIf="fullConfig.showFixedCorners.bottomLeft"
+             #fixedBottomLeft class="fixed fixed-bottom-left"
              [style.transform]="'translate3d(0, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
              [style.height]="fixedBottomHeight  + 'px'"
              [style.width]="fixedLeftWidth + 'px'"
         >
         </div>
-        <div #fixedTopLeft class="fixed fixed-top-left"
+        <div *ngIf="fullConfig.showFixedCorners.topLeft"
+             #fixedTopLeft class="fixed fixed-top-left"
              [style.height]="fixedTopHeight  + 'px'"
              [style.width]="fixedLeftWidth + 'px'"
         >
