@@ -1,5 +1,9 @@
 # matrix-view
+This is an architecture study, to evaluate the implementation of a feature rich table representation of two 
+dimensional data, i.e. a matrix.
 
+ * [Browser Support](#browser-support)
+ * [Features](#features)
 
 ## Browser Support
 
@@ -82,7 +86,10 @@ on performance optimizations addresses this issue.
 
 ###### Limitations
 
-There are some limitations. Due to the involved event handling, scrol synchronisation is not always perfectly smooth. 
+There are some limitations. 
+
+ * Scroll events in IE  
+   Due to the involved event handling, scroll synchronisation is not always perfectly smooth. 
 Especially in IE11, there is a problem, when clicking on the scroll bar.
 In this case, only one scroll event is fired, and the update on the header position is updated 
 in one step. Hence the header jumps to the correct position after one clicks on the scroll bar. 
@@ -90,3 +97,8 @@ This effect cannot be solved, since it depends on the events fired by the browse
 See also the discussion on [Stackoverflow](https://stackoverflow.com/q/21775234/1458343). 
 Note that this behaviour can also be observed in ExtJS grids, handsontable and other table 
 implementations.
+
+ * Wheel events on fixed areas  
+   Wheel events on fixed positioned elements are handled different in Chrome and IE. This means, 
+   the view cannot be scrolled via the wheel, when the mouse is over the fixed areas in chrome.
+   Custom event propagation may be implemented, but it is not clear, if this will cause any issues.

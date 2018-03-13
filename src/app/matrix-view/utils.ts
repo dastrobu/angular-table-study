@@ -27,3 +27,11 @@ export interface BoxSize {
     width: number;
     height: number;
 }
+
+/**
+ * General interface for 2D points.
+ */
+export interface Point2D {
+    top: number;
+    left: number;
+}

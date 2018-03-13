@@ -1,5 +1,5 @@
 import {ChangeDetectorRef, Component, ElementRef, OnInit, ViewChild} from '@angular/core';
-import {BoxSize, getScrollbarWidth} from './utils';
+import {BoxSize, getScrollbarWidth, Point2D} from './utils';
 
 interface HeaderCell {
     col: number;
@@ -110,24 +110,19 @@ export class MatrixViewComponent implements OnInit {
     }
 
     public scroll() {
-        const scrollLeft = this.container.nativeElement.scrollLeft;
-        const scrollTop = this.container.nativeElement.scrollTop;
-        this.updateFixedPositions(scrollLeft, scrollTop);
+        // const scrollLeft = this.container.nativeElement.scrollLeft;
+        // const scrollTop = this.container.nativeElement.scrollTop;
+        // this.updateFixedPositions(scrollLeft, scrollTop);
     }
 
     private updateFixedPositions(scrollLeft: number, scrollTop: number) {
         const canvasSize = this.canvasSize;
         // this.fixedRight.nativeElement.style.left = (left + this.viewportSize.width - this.fixedLeftWidth / 2) + 'px';
 
-        this.fixedTop.nativeElement.style.width = canvasSize.width + 'px';
-        this.fixedBottom.nativeElement.style.width = canvasSize.width + 'px';
-        this.fixedLeft.nativeElement.style.height = canvasSize.height + 'px';
-        this.fixedRight.nativeElement.style.height = canvasSize.height + 'px';
-
-        this.fixedTop.nativeElement.style.left = -scrollLeft + 'px';
-        this.fixedBottom.nativeElement.style.left = -scrollLeft + 'px';
-        this.fixedLeft.nativeElement.style.top = -scrollTop + 'px';
-        this.fixedRight.nativeElement.style.top = -scrollTop + 'px';
+        // this.fixedTop.nativeElement.style.left = -scrollLeft + 'px';
+        // this.fixedBottom.nativeElement.style.left = -scrollLeft + 'px';
+        // this.fixedLeft.nativeElement.style.top = -scrollTop + 'px';
+        // this.fixedRight.nativeElement.style.top = -scrollTop + 'px';
     }
 
     private get canvasSize(): BoxSize {
@@ -146,10 +141,17 @@ export class MatrixViewComponent implements OnInit {
         this.containerSize.height = Number(computedContainerStyle.height.replace('px', ''));
 
         // TODO: check if there is any scroll bar, before subtracting
-        this.viewportSize.width = this.containerSize.width - getScrollbarWidth();
-        this.viewportSize.height = this.containerSize.height - getScrollbarWidth();
+        const viewportSize = this.viewportSize;
+        viewportSize.width = this.containerSize.width - getScrollbarWidth();
+        viewportSize.height = this.containerSize.height - getScrollbarWidth();
+
+        // update the widths of the fixed areas
+        this.fixedTop.nativeElement.style.width = viewportSize.width + 'px';
+        this.fixedBottom.nativeElement.style.width = viewportSize.width + 'px';
+        this.fixedLeft.nativeElement.style.height = viewportSize.height + 'px';
+        this.fixedRight.nativeElement.style.height = viewportSize.height + 'px';
 
         console.log('containerSize: ' + JSON.stringify(this.containerSize));
-        console.log('viewportSize: ' + JSON.stringify(this.viewportSize));
+        console.log('viewportSize: ' + JSON.stringify(viewportSize));
     }
 }

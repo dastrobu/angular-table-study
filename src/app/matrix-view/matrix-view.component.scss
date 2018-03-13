@@ -8,7 +8,7 @@ div {
     display: inline-block;
     overflow: hidden;
     // this is to create a new stacking context: https://coderwall.com/p/2wzj-a/break-out-of-overflow-hidden-with-relative-positioned-fixed-elements
-    transform: translate3d(0, 0, 0);
+    //transform: translate3d(0, 0, 0);
     border: solid;
     border-color: black;
     border-width: 1px;
@@ -23,7 +23,6 @@ div {
     overflow: auto;
     // TODO: test the table insice a component which has itself a high z-index, is there any problem?
     // make sure the scroll bars lie above the fixed elements, hence the z-index
-    z-index: 1;
 
     background-color: beige;
 }
@@ -34,24 +33,18 @@ div {
 }
 
 .fixed-top {
-    min-width: 100%;
     background-color: #ffa841;
 }
 
 .fixed-bottom {
-    min-width: 100%;
-
     background-color: #ff39eb;
 }
 
 .fixed-left {
-    min-height: 100%;
-
     background-color: #fffe43;
 }
 
 .fixed-right {
-    min-height: 100%;
     background-color: #15ff1c;
 }
 

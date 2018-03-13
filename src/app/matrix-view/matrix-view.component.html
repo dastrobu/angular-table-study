@@ -1,71 +1,68 @@
 <div #container class="container" (scroll)="scroll()">
-    <div #body class="body">
-        <div #canvas class="canvas"
-             [style.width]="numCols*colWidth + 'px'"
-             [style.height]="numRows*rowHeight + 'px'"
+    <div #canvas class="canvas"
+         [style.width]="numCols*colWidth + 'px'"
+         [style.height]="numRows*rowHeight + 'px'"
+    >
+        <div class="cell"
+             *ngFor="let cell of cells"
+             [style.top]="cell.row*rowHeight + 'px'"
+             [style.left]="cell.col*colWidth + 'px'"
         >
-            <div class="cell"
-                 *ngFor="let cell of cells"
-                 [style.top]="cell.row*rowHeight + 'px'"
-                 [style.left]="cell.col*colWidth + 'px'"
-            >
-                Foo {{cell.row}}, {{cell.col}}
-            </div>
-            <div #fixedTop class="fixed fixed-top"
-                 [style.height]="fixedTopHeight + 'px'"
-            >
-                fixed top
-                fixed top
-                fixed top
-            </div>
-            <div #fixedRight class="fixed fixed-right"
-                 [style.left]="(viewportSize.width - fixedRightWidth) + 'px'"
-                 [style.width]="fixedRightWidth + 'px'"
-            >
-                fixed right<br>
-                fixed right<br>
-                fixed right<br>
-            </div>
-            <div #fixedBottom class="fixed fixed-bottom"
-                 [style.top]="(viewportSize.height - fixedBottomHeight) + 'px'"
-                 [style.height]="fixedBottomHeight  + 'px'"
-            >
-                fixed bottom
-                fixed bottom
-                fixed bottom
-            </div>
-            <div #fixedLeft class="fixed fixed-left"
-                 [style.width]="fixedLeftWidth  + 'px'"
-            >
-                fixed left<br>
-                fixed left<br>
-                fixed left<br>
-                fixed left<br>
-            </div>
-            <div #fixedTopRight class="fixed fixed-top-right"
-                 [style.left]="(viewportSize.width - fixedRightWidth) + 'px'"
-                 [style.height]="fixedTopHeight  + 'px'"
-                 [style.width]="fixedRightWidth + 'px'"
-            >
-            </div>
-            <div #fixedBottomRight class="fixed fixed-bottom-right"
-                 [style.left]="(viewportSize.width - fixedRightWidth) + 'px'"
-                 [style.width]="fixedRightWidth + 'px'"
-                 [style.top]="(viewportSize.height - fixedBottomHeight) + 'px'"
-                 [style.height]="fixedBottomHeight  + 'px'"
-            >
-            </div>
-            <div #fixedBottomLeft class="fixed fixed-bottom-left"
-                 [style.top]="(viewportSize.height - fixedBottomHeight) + 'px'"
-                 [style.height]="fixedBottomHeight  + 'px'"
-                 [style.width]="fixedLeftWidth + 'px'"
-            >
-            </div>
-            <div #fixedTopLeft class="fixed fixed-top-left"
-                 [style.height]="fixedTopHeight  + 'px'"
-                 [style.width]="fixedLeftWidth + 'px'"
-            >
-            </div>
+            Foo {{cell.row}}, {{cell.col}}
+        </div>
+        <div #fixedTop class="fixed fixed-top"
+             [style.height]="fixedTopHeight + 'px'"
+        >
+            fixed top
+            fixed top
+            fixed top
+        </div>
+        <div #fixedRight class="fixed fixed-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, 0, 0)'"
+             [style.width]="fixedRightWidth + 'px'"
+        >
+            fixed right<br>
+            fixed right<br>
+            fixed right<br>
+        </div>
+        <div #fixedBottom class="fixed fixed-bottom"
+             [style.transform]="'translate3d(0, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
+             [style.height]="fixedBottomHeight  + 'px'"
+        >
+            fixed bottom
+            fixed bottom
+            fixed bottom
+        </div>
+        <div #fixedLeft class="fixed fixed-left"
+             [style.width]="fixedLeftWidth  + 'px'"
+        >
+            fixed left<br>
+            fixed left<br>
+            fixed left<br>
+            fixed left<br>
+        </div>
+        <div #fixedTopRight class="fixed fixed-top-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, 0, 0)'"
+             [style.height]="fixedTopHeight  + 'px'"
+             [style.width]="fixedRightWidth + 'px'"
+        >
+        </div>
+        <div #fixedBottomRight class="fixed fixed-bottom-right"
+             [style.transform]="'translate3d(' + (viewportSize.width - fixedRightWidth) + 'px, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
+             [style.width]="fixedRightWidth + 'px'"
+             [style.height]="fixedBottomHeight  + 'px'"
+        >
+        </div>
+        <div #fixedBottomLeft class="fixed fixed-bottom-left"
+             [style.transform]="'translate3d(0, ' + (viewportSize.height - fixedBottomHeight) + 'px, 0)'"
+             [style.height]="fixedBottomHeight  + 'px'"
+             [style.width]="fixedLeftWidth + 'px'"
+        >
+        </div>
+        <div #fixedTopLeft class="fixed fixed-top-left"
+             [style.height]="fixedTopHeight  + 'px'"
+             [style.width]="fixedLeftWidth + 'px'"
+        >
         </div>
     </div>
 </div>
