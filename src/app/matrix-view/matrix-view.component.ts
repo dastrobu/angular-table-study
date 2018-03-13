@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, OnInit, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectorRef, Component, ElementRef, Input, NgZone, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {BoxSize, getScrollbarWidth} from './utils';
 import {isInternetExplorer} from './browser';
 
@@ -55,7 +55,8 @@ class FullMatrixViewConfig implements MatrixViewConfig {
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
 })
-export class MatrixViewComponent implements OnInit, AfterViewInit {
+export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
+
     get fullConfig(): FullMatrixViewConfig {
         return this._fullConfig;
     }
@@ -216,8 +217,16 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
     private _fixedBottomHeight = 30;
     private _fixedLeftWidth = 40;
 
-    constructor(private changeDetectorRef: ChangeDetectorRef) {
+    /**
+     * scroll listener to synchronize scrolling on the main canvas and on the fixed areas.
+     */
+    private scrollListener: () => void;
 
+
+    constructor(private changeDetectorRef: ChangeDetectorRef,
+                private zone: NgZone) {
+
+        // TODO DST: remove this dummy data
         for (let i = 0; i < this.numCols; ++i) {
             this.headerCells.push({col: i});
             for (let j = 0; j < this.numRows; ++j) {
@@ -227,6 +236,31 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
     }
 
     ngOnInit() {
+        // to optimize performance, the scroll sync runs outside angular.
+        // so one should be careful, what to do here, since there is not change detection running.
+        this.zone.runOutsideAngular(() => {
+            this.scrollListener = () => {
+                const scrollLeft = this.container.nativeElement.scrollLeft;
+                const scrollTop = this.container.nativeElement.scrollTop;
+                const canvasTop = this.canvasTop;
+                if (canvasTop) {
+                    canvasTop.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
+                }
+                const canvasBottom = this.canvasBottom;
+                if (canvasBottom) {
+                    canvasBottom.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
+                }
+                const canvasLeft = this.canvasLeft;
+                if (canvasLeft) {
+                    canvasLeft.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+                }
+                const canvasRight = this.canvasRight;
+                if (canvasRight) {
+                    canvasRight.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+                }
+            };
+            this.container.nativeElement.addEventListener('scroll', this.scrollListener);
+        });
     }
 
     ngAfterViewInit(): void {
@@ -237,24 +271,10 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
         this.updateFixedPositions(0, 0);
     }
 
-    public scroll() {
-        const scrollLeft = this.container.nativeElement.scrollLeft;
-        const scrollTop = this.container.nativeElement.scrollTop;
-        const canvasTop = this.canvasTop;
-        if (canvasTop) {
-            canvasTop.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
-        }
-        const canvasBottom = this.canvasBottom;
-        if (canvasBottom) {
-            canvasBottom.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
-        }
-        const canvasLeft = this.canvasLeft;
-        if (canvasLeft) {
-            canvasLeft.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
-        }
-        const canvasRight = this.canvasRight;
-        if (canvasRight) {
-            canvasRight.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+    ngOnDestroy(): void {
+        // clean up the scroll listener
+        if (this.scrollListener) {
+            this.container.nativeElement.removeEventListener('scroll', this.scrollListener);
         }
     }
 
