@@ -12,6 +12,9 @@ import {
 } from '@angular/core';
 import {BoxSize, getScrollbarWidth} from './utils';
 import {isInternetExplorer} from './browser';
+import {MatrixViewModel} from './matrix-view-model';
+import {FullMatrixViewConfig, MatrixViewConfig} from './matrix-view-config';
+import {Log} from './log';
 
 interface HeaderCell {
     col: number;
@@ -22,126 +25,135 @@ interface Cell {
     row: number;
 }
 
-export interface MatrixViewConfig {
-    /**
-     * configure if fixed corners shall be shown.
-     * The configuration can either be done globally, i.e. via a boolean, which configures all fixed corners,
-     * or for each corner individually, via an object
-     * <pre>
-     * {
-     *      topLeft?: boolean,
-     *      topRight?: boolean,
-     *      bottomLeft?: boolean,
-     *      bottomRight?: boolean,
-     * }
-     * </pre>
-     * If the global boolean or one of the individual properties is not set, the property is determinded automatically.
-     */
-    showFixedCorners?: boolean | { topLeft?: boolean, topRight?: boolean, bottomLeft?: boolean, bottomRight?: boolean };
-
-    /**
-     * configure how many cols or rows shall be shown in the fixed areas. If the number is not set or 0, no fixed area
-     * is shown.
-     */
-    showFixed: { top: number, left: number, right: number, bottom: number };
-}
-
-class FullMatrixViewConfig implements MatrixViewConfig {
-    showFixed = {
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    };
-    showFixedCorners: { topLeft: boolean, topRight: boolean, bottomLeft: boolean, bottomRight: boolean } = {
-        topLeft: false,
-        topRight: false,
-        bottomLeft: false,
-        bottomRight: false,
-    };
-}
-
 @Component({
+    // TODO DST: if we use onPush we must make sure, that the inputs are immutable... this is currently not the case.
     changeDetection: ChangeDetectionStrategy.OnPush,
     selector: 'matrix-view',
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
 })
-export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
+export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnDestroy {
+    private log: Log = new Log();
+
+    get model(): MatrixViewModel<CellType> {
+        return this._model;
+    }
+
+    private _model: MatrixViewModel<CellType>;
 
     get fullConfig(): FullMatrixViewConfig {
         return this._fullConfig;
     }
 
     @Input()
+    set model(value: MatrixViewModel<CellType>) {
+        this._model = value;
+    }
+
+    @Input()
     set config(value: MatrixViewConfig) {
-        // determine fixed config
-        if (value.showFixed !== undefined && value.showFixed !== null) {
-            this.fullConfig.showFixed.top = value.showFixed.top;
-            this.fullConfig.showFixed.bottom = value.showFixed.bottom;
-            this.fullConfig.showFixed.left = value.showFixed.left;
-            this.fullConfig.showFixed.right = value.showFixed.right;
-        }
-        // determine config of fixed corners
-        if (value.showFixedCorners !== undefined && value.showFixedCorners !== null) {
-            if (value.showFixedCorners === true) {
-                this.fullConfig.showFixedCorners.topLeft = true;
-                this.fullConfig.showFixedCorners.topRight = true;
-                this.fullConfig.showFixedCorners.bottomLeft = true;
-                this.fullConfig.showFixedCorners.bottomRight = true;
-            } else if (value.showFixedCorners === false) {
-                this.fullConfig.showFixedCorners.topLeft = false;
-                this.fullConfig.showFixedCorners.topRight = false;
-                this.fullConfig.showFixedCorners.bottomLeft = false;
-                this.fullConfig.showFixedCorners.bottomRight = false;
-            } else {
-                this.fullConfig.showFixedCorners.topLeft = value.showFixedCorners.topLeft;
-                this.fullConfig.showFixedCorners.topRight = value.showFixedCorners.topRight;
-                this.fullConfig.showFixedCorners.bottomLeft = value.showFixedCorners.bottomLeft;
-                this.fullConfig.showFixedCorners.bottomRight = value.showFixedCorners.bottomRight;
-            }
-        } else {
-            // determine visibility of fixed corners automatically, if not set explicitly
-            if (this.fullConfig.showFixed.top && this.fullConfig.showFixed.left) {
-                this.fullConfig.showFixedCorners.topLeft = true;
-            }
-            if (this.fullConfig.showFixed.top && this.fullConfig.showFixed.right) {
-                this.fullConfig.showFixedCorners.topRight = true;
-            }
-            if (this.fullConfig.showFixed.bottom && this.fullConfig.showFixed.left) {
-                this.fullConfig.showFixedCorners.bottomLeft = true;
-            }
-            if (this.fullConfig.showFixed.bottom && this.fullConfig.showFixed.right) {
-                this.fullConfig.showFixedCorners.bottomRight = true;
-            }
-        }
+        this._fullConfig = new FullMatrixViewConfig(value);
+
+        // update log level on config changes
+        this.log.level = this._fullConfig.logLevel;
     }
 
     private _fullConfig: FullMatrixViewConfig = new FullMatrixViewConfig();
 
-    get fixedLeftWidth(): number {
-        return this._fixedLeftWidth;
+    get fixedTopHeight(): number {
+        this.log.trace(() => 'fixedTopHeight');
+        const nRowsFixedTop = this.fullConfig.showFixed.top;
+        if (!nRowsFixedTop) {
+            this.log.trace(() => 'fixedTopHeight => 0');
+            return 0;
+        }
+        const rowModel = this.model.rowModel;
+        let height = 0;
+        const size = rowModel.size;
+        if (nRowsFixedTop > size) {
+            throw new Error('nRowsFixedTop must be smaller than ' + size + ', got: ' + nRowsFixedTop);
+        }
+        this.log.trace(() => '> ' + height);
+        this.log.trace(() => 'nRowsFixedTop > ' + nRowsFixedTop);
+        for (let i = 0; i < nRowsFixedTop; ++i) {
+            height += rowModel.rowHeight(i);
+            this.log.trace(() => i + '> ' + height);
+        }
+        this.log.trace(() => 'fixedTopHeight => ' + height);
+        return height;
     }
+
 
     get fixedBottomHeight(): number {
-        return this._fixedBottomHeight;
+        this.log.trace(() => 'fixedBottomHeight');
+        const nRowsFixedBottom = this.fullConfig.showFixed.bottom;
+        if (!nRowsFixedBottom) {
+            this.log.trace(() => 'fixedBottomHeight => 0');
+            return 0;
+        }
+        const rowModel = this.model.rowModel;
+        let height = 0;
+        const size = rowModel.size;
+        if (nRowsFixedBottom > size) {
+            throw new Error('nRowsFixedBottom must be smaller than ' + size + ', got: ' + nRowsFixedBottom);
+        }
+        for (let i = 0; i < nRowsFixedBottom; ++i) {
+            height += rowModel.rowHeight(size - 1 - i);
+        }
+        this.log.trace(() => 'fixedBottomHeight => ' + height);
+        return height;
     }
 
-    get fixedTopHeight(): number {
-        return this._fixedTopHeight;
+
+    get fixedLeftWidth(): number {
+        this.log.trace(() => 'fixedLeftWidth');
+        const nColsFixedLeft = this.fullConfig.showFixed.left;
+        if (!nColsFixedLeft) {
+            this.log.trace(() => 'fixedLeftWidth => 0');
+            return 0;
+        }
+        const colModel = this.model.colModel;
+        let width = 0;
+        const size = colModel.size;
+        if (nColsFixedLeft > size) {
+            throw new Error('nColsFixedLeft must be smaller than ' + size + ', got: ' + nColsFixedLeft);
+        }
+        for (let i = 0; i < nColsFixedLeft; ++i) {
+            width += colModel.colWidth(i);
+        }
+        this.log.trace(() => 'fixedLeftWidth => ' + width);
+        return width;
     }
 
     get fixedRightWidth(): number {
-        return this._fixedRightWidth;
+        this.log.trace(() => 'fixedLeftWidth');
+        const nColsFixedRight = this.fullConfig.showFixed.right;
+        if (!nColsFixedRight) {
+            this.log.trace(() => 'fixedRightWidth => 0');
+            return 0;
+        }
+        const colModel = this.model.colModel;
+        let width = 0;
+        const size = colModel.size;
+        if (nColsFixedRight > size) {
+            throw new Error('nColsFixedRight must be smaller than ' + size + ', got: ' + nColsFixedRight);
+        }
+        for (let i = 0; i < nColsFixedRight; ++i) {
+            width += colModel.colWidth(size - 1 - i);
+        }
+        this.log.trace(() => 'fixedRightWidth => ' + width);
+        return width;
     }
 
     /**
      * size of the container (including scrollbars)
      */
     get containerSize(): BoxSize {
+        this.log.trace(() => 'containerSize');
         const computedContainerStyle = getComputedStyle(this.container.nativeElement);
         const width = Number(computedContainerStyle.width.replace('px', ''));
         const height = Number(computedContainerStyle.height.replace('px', ''));
+        this.log.trace(() => 'containerSize => ' + JSON.stringify({width: width, height: height}));
         return {width: width, height: height};
     }
 
@@ -149,6 +161,7 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
      * size of the viewport, i.e. the size of the container minus scrollbars, if any.
      */
     get viewportSize(): BoxSize {
+        this.log.trace(() => 'viewportSize');
         const containerSize = this.containerSize;
 
         let width: number;
@@ -161,7 +174,7 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
             width = containerSize.width - getScrollbarWidth();
             height = containerSize.height - getScrollbarWidth();
         }
-
+        this.log.trace(() => 'viewportSize => ' + JSON.stringify({width: width, height: height}));
         return {width: width, height: height};
     }
 
@@ -219,15 +232,12 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
      * Size of the canvas to draw to.
      */
     public get canvasSize(): BoxSize {
-        return {width: this.numCols * this.colWidth, height: this.numRows * this.rowHeight};
+        this.log.trace(() => 'viewportSize');
+        const width = this.model.colModel.width;
+        const height = this.model.rowModel.height;
+        this.log.trace(() => 'viewportSize => ' + JSON.stringify({width: width, height: height}));
+        return {width: width, height: height};
     }
-
-    // TODO: fix default values
-    private _fixedRightWidth = 80;
-
-    private _fixedTopHeight = 60;
-    private _fixedBottomHeight = 30;
-    private _fixedLeftWidth = 40;
 
     /**
      * scroll listener to synchronize scrolling on the main canvas and on the fixed areas.
@@ -237,17 +247,16 @@ export class MatrixViewComponent implements OnInit, AfterViewInit, OnDestroy {
 
     constructor(private changeDetectorRef: ChangeDetectorRef,
                 private zone: NgZone) {
-
-        // TODO DST: remove this dummy data
-        for (let i = 0; i < this.numCols; ++i) {
-            this.headerCells.push({col: i});
-            for (let j = 0; j < this.numRows; ++j) {
-                this.cells.push({col: i, row: j});
-            }
-        }
     }
 
     ngOnInit() {
+        this.log.debug(() => 'ngOnInit()');
+        if (!this.model) {
+            throw new Error('model is required');
+        }
+        this.log.debug(() => 'rowModel.size: ' + this.model.rowModel.size);
+        this.log.debug(() => 'colModel.size: ' + this.model.colModel.size);
+
         // to optimize performance, the scroll sync runs outside angular.
         // so one should be careful, what to do here, since there is not change detection running.
         this.zone.runOutsideAngular(() => {
