@@ -82,17 +82,18 @@ Fixed columns and rows require scroll synchronisation, if scrolling in two direc
 supported. 
 
 First of all, there are two different events for scrolling. The scroll event, the wheel event. 
-To implement scroll event handler properly, it is important to know, that [scroll events](https://developer.mozilla.org/en-US/docs/Web/Events/scroll) are 
-not [cancelable](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) and [wheel events](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) are. Consequently, one should not bind any event handlers to 
+To implement scroll event handler properly, it is important to know, that 
+[scroll events](https://developer.mozilla.org/en-US/docs/Web/Events/scroll) are 
+not [cancelable](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) and 
+[wheel events](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) are. 
+Consequently, one should not bind any event handlers to 
 the wheel event, since the event handlder must be executed completely, before the browser can 
-execute the scoll event (because the event handler could 
-call `preventDefault()` on the wheel event).
+execute the scoll event (because the event handler could call `preventDefault()` on the wheel event).
 
 When implementing the scroll event handler, performance must be monitored carefully. 
 If the event handler executes too long, scroll synchronisation will not be smooth.
 A nice [article](https://medium.com/paramsingh-66174/catalysing-your-angular-4-app-performance-9211979075f6) 
 on performance optimizations addresses this issue.
-
 
 ###### Limitations
 
@@ -110,5 +111,5 @@ implementations.
 
  * Wheel events on fixed areas  
    Wheel events on fixed positioned elements are handled different in Chrome and IE. This means, 
-   the view cannot be scrolled via the wheel, when the mouse is over the fixed areas in chrome.
+   the view cannot be scrolled via the wheel, when the mouse is positioned over the fixed areas in chrome.
    Custom event propagation may be implemented, but it is not clear, if this will cause any issues.
