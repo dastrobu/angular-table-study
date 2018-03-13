@@ -1,0 +1,84 @@
+
+div {
+    box-sizing: border-box;
+}
+
+// default display of the host should be inline-block
+:host {
+    display: inline-block;
+    overflow: hidden;
+    // this is to create a new stacking context: https://coderwall.com/p/2wzj-a/break-out-of-overflow-hidden-with-relative-positioned-fixed-elements
+    transform: translate3d(0, 0, 0);
+    border: solid;
+    border-color: black;
+    border-width: 1px;
+}
+
+.container {
+    // make sure the container fills the whole host
+    display: block;
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    // TODO: test the table insice a component which has itself a high z-index, is there any problem?
+    // make sure the scroll bars lie above the fixed elements, hence the z-index
+    z-index: 1;
+
+    background-color: beige;
+}
+
+.fixed {
+    display: block;
+    position: fixed;
+}
+
+.fixed-top {
+    min-width: 100%;
+    background-color: #ffa841;
+}
+
+.fixed-bottom {
+    min-width: 100%;
+
+    background-color: #ff39eb;
+}
+
+.fixed-left {
+    min-height: 100%;
+
+    background-color: #fffe43;
+}
+
+.fixed-right {
+    min-height: 100%;
+    background-color: #15ff1c;
+}
+
+.fixed-top-left {
+    background-color: #42fff3;
+}
+
+.fixed-top-right {
+    background-color: #ffbdd9;
+}
+
+.fixed-bottom-right {
+    background-color: #7280ff;
+}
+
+.fixed-bottom-left {
+    background-color: #ffc26a;
+}
+
+// the canvas is the area all scrollable content is drawn to
+.canvas {
+    display: block;
+    position: relative;
+
+    background-color: #e0f0fa;
+}
+
+.cell {
+    position: absolute;
+}
