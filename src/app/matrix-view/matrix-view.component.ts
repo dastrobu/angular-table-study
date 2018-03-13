@@ -122,6 +122,9 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
         return this._fixedRightWidth;
     }
 
+    /**
+     * size of the container (including scrollbars)
+     */
     get containerSize(): BoxSize {
         const computedContainerStyle = getComputedStyle(this.container.nativeElement);
         const width = Number(computedContainerStyle.width.replace('px', ''));
@@ -157,6 +160,15 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
 
     @ViewChild('canvasTop')
     public canvasTop: ElementRef;
+
+    @ViewChild('canvasBottom')
+    public canvasBottom: ElementRef;
+
+    @ViewChild('canvasLeft')
+    public canvasLeft: ElementRef;
+
+    @ViewChild('canvasRight')
+    public canvasRight: ElementRef;
 
     @ViewChild('fixedTop')
     public fixedTop: ElementRef;
@@ -197,11 +209,6 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
         return {width: this.numCols * this.colWidth, height: this.numRows * this.rowHeight};
     }
 
-    /**
-     * size of the container (including scrollbars)
-     */
-    private _containerSize: BoxSize = {width: 0, height: 0};
-
     // TODO: fix default values
     private _fixedRightWidth = 80;
 
@@ -237,7 +244,18 @@ export class MatrixViewComponent implements OnInit, AfterViewInit {
         if (canvasTop) {
             canvasTop.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
         }
-        // this.updateFixedPositions(scrollLeft, scrollTop);
+        const canvasBottom = this.canvasBottom;
+        if (canvasBottom) {
+            canvasBottom.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
+        }
+        const canvasLeft = this.canvasLeft;
+        if (canvasLeft) {
+            canvasLeft.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+        }
+        const canvasRight = this.canvasRight;
+        if (canvasRight) {
+            canvasRight.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+        }
     }
 
     private updateFixedPositions(scrollLeft: number, scrollTop: number) {
