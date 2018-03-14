@@ -10,13 +10,14 @@
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
             <!-- TODO DST: implement -->
-            <!--<div class="cell"-->
-            <!--*ngFor="let cell of cells"-->
-            <!--[style.top]="cell.row*rowHeight + 'px'"-->
-            <!--[style.left]="cell.col*colWidth + 'px'"-->
-            <!--&gt;-->
-            <!--Foo {{cell.row}}, {{cell.col}}-->
-            <!--</div>-->
+            <ng-container *ngFor="let row of cells; let i = index">
+                <div class="cell"
+                     *ngFor="let cell of row; let j = index"
+                     [style.transform]="'translate3d(' + viewModel.colPosition(i) + 'px, ' + viewModel.rowPosition(j) + ', 0)'"
+                >
+                    {{cell}}
+                </div>
+            </ng-container>
         </div>
     </div>
 

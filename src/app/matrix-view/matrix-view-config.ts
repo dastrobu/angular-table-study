@@ -45,7 +45,7 @@ export class Config implements MatrixViewConfig {
         bottomLeft: false,
         bottomRight: false,
     };
-    private log: Log = new Log();
+    private log: Log = new Log(this.constructor.name + ':');
 
     /** copy constructor, which extracts all information and stores it */
     constructor(config?: MatrixViewConfig) {

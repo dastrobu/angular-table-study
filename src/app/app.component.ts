@@ -11,7 +11,7 @@ import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 export class AppComponent implements OnInit {
     modelSubject = new BehaviorSubject<MatrixViewModel<string>>(null);
     private config: MatrixViewConfig = {
-        showFixed: {top: 1, left: 1, right: 0, bottom: 0}, logLevel: 'trace'
+        showFixed: {top: 1, left: 1, right: 0, bottom: 0}, logLevel: 'debug'
     };
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
 

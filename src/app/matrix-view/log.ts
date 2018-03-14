@@ -8,20 +8,6 @@
  */
 declare type MessageProvider = () => string;
 
-/**
- * No operation logger, which simply ignores the log.
- * @param log message to log (as lambda)
- */
-function noopLogger(log: MessageProvider): void {
-}
-
-/**
- * Logger, which logs to the console.
- * @param log message to log (as lambda)
- */
-function consoleLogger(log: MessageProvider): void {
-    console.log(log());
-}
 
 /**
  * Union type for log levels.
@@ -33,6 +19,18 @@ export type LogLevel = 'off' | 'info' | 'debug' | 'trace';
  */
 export class Log {
 
+    /**
+     * No operation logger, which simply ignores the log.
+     * @param log message to log (as lambda)
+     */
+    private noopLogger: (log: MessageProvider) => void;
+    /**
+     * Logger, which logs to the console.
+     * @param log message to log (as lambda)
+     */
+    private consoleLogger: (log: MessageProvider) => void;
+    private infoLogger: (log: MessageProvider) => void;
+
     get level() {
         return this._level;
     }
@@ -41,9 +39,19 @@ export class Log {
      * current log level
      */
     private _level: LogLevel;
-    private infoLogger: (log: MessageProvider) => void = noopLogger;
-    private debugLogger: (log: MessageProvider) => void = noopLogger;
-    private traceLogger: (log: MessageProvider) => void = noopLogger;
+    private debugLogger: (log: MessageProvider) => void;
+    private traceLogger: (log: MessageProvider) => void;
+
+    constructor(private _prefix: string = '') {
+        this.noopLogger = (log: MessageProvider) => {
+        };
+        this.consoleLogger = (log: MessageProvider) => {
+            console.log(this._prefix + log());
+        };
+        this.infoLogger = this.noopLogger;
+        this.debugLogger = this.noopLogger;
+        this.traceLogger = this.noopLogger;
+    }
 
     /**
      * @param value new log level, which causes an update of the logger configuration.
@@ -52,24 +60,24 @@ export class Log {
         this._level = value;
         switch (value) {
             case 'info':
-                this.infoLogger = consoleLogger;
-                this.debugLogger = noopLogger;
-                this.traceLogger = noopLogger;
+                this.infoLogger = this.consoleLogger;
+                this.debugLogger = this.noopLogger;
+                this.traceLogger = this.noopLogger;
                 break;
             case 'debug':
-                this.infoLogger = consoleLogger;
-                this.debugLogger = consoleLogger;
-                this.traceLogger = noopLogger;
+                this.infoLogger = this.consoleLogger;
+                this.debugLogger = this.consoleLogger;
+                this.traceLogger = this.noopLogger;
                 break;
             case 'trace':
-                this.infoLogger = consoleLogger;
-                this.debugLogger = consoleLogger;
-                this.traceLogger = consoleLogger;
+                this.infoLogger = this.consoleLogger;
+                this.debugLogger = this.consoleLogger;
+                this.traceLogger = this.consoleLogger;
                 break;
             default:
-                this.infoLogger = noopLogger;
-                this.debugLogger = noopLogger;
-                this.traceLogger = noopLogger;
+                this.infoLogger = this.noopLogger;
+                this.debugLogger = this.noopLogger;
+                this.traceLogger = this.noopLogger;
         }
     }
 

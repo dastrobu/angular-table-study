@@ -30,7 +30,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
 
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
-    private log: Log = new Log();
+    private log: Log = new Log(this.constructor.name + ':');
 
     @ViewChild('container')
     public container: ElementRef;
@@ -94,6 +94,10 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     @Input()
     set model(modelObservable: Observable<MatrixViewModel<CellType>>) {
         this.subscriptions.push(modelObservable.subscribe(model => {
+            if (!model) {
+                this.log.debug(() => `replacing undefined model by empty model`);
+                model = new Model<CellType>();
+            }
             // call copy constructor, to address mutability
             this._model.next(new Model<CellType>(model));
         }));
@@ -131,9 +135,13 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
         return this._config.value.showFixedCorners;
     }
 
+    public get cells(): ReadonlyArray<ReadonlyArray<CellType>> {
+        return this._model.value.cells;
+    }
+
     ngOnInit() {
-        this.log.debug(() => 'ngOnInit()');
-        if (!this.model) {
+        this.log.debug(() => `ngOnInit()`);
+        if (!this._model) {
             throw new Error('model is required');
         }
 
@@ -142,12 +150,14 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     }
 
     ngAfterViewInit(): void {
+        this.log.debug(() => `ngAfterViewInit()`);
         this.updateViewportSize();
         this.changeDetectorRef.detectChanges();
         this.updateViewportSize();
     }
 
     ngOnDestroy(): void {
+        this.log.debug(() => `ngOnDestroy()`);
         // unsubscribe from all observables
         this.subscriptions.forEach(subscription => subscription.unsubscribe());
 
@@ -185,7 +195,8 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
             fixedRight.nativeElement.style.height = Math.ceil(viewportSize.height) + 'px';
         }
 
-        console.log('containerSize: ' + JSON.stringify(this.viewModel.containerSize));
-        console.log('viewportSize: ' + JSON.stringify(viewportSize));
+        this.log.debug(() => `containerSize: ${JSON.stringify(this.viewModel.containerSize)}`);
+        this.log.debug(() => `viewportSize: ${JSON.stringify(viewportSize)}`);
     }
 }
+

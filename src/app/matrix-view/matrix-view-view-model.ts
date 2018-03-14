@@ -16,7 +16,7 @@ import {OnDestroy, OnInit} from '@angular/core';
  * Note: the view model must not be modified externally.
  */
 export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
-    private log: Log = new Log();
+    private log: Log = new Log(this.constructor.name + ':');
     private model: Model<CellType>;
     private config: Config;
 
@@ -178,7 +178,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
      * Size of the canvas to draw to.
      */
     public get canvasSize(): BoxSize {
-        this.log.trace(() => 'viewportSize');
+        this.log.trace(() => `canvasSize`);
         const model = this.model;
         const width = model.colModel.width;
         const height = model.rowModel.height;
@@ -187,6 +187,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
     }
 
     ngOnInit(): void {
+        this.log.debug(() => `ngOnInit()`);
         const matrixViewComponent = this.matrixViewComponent;
         // to optimize performance, the scroll sync runs outside angular.
         // so one should be careful, what to do here, since there is not change detection running.
@@ -216,7 +217,18 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
         });
     }
 
+    /** @return {number} position of a certain row in px */
+    public rowPosition(modelIndex: number): number {
+        return this.model.rowModel.position(modelIndex);
+    }
+
+    /** @return {number} position of a certain col in px */
+    public colPosition(modelIndex: number): number {
+        return this.model.colModel.position(modelIndex);
+    }
+
     ngOnDestroy(): void {
+        this.log.debug(() => `ngOnDestroy()`);
         // clean up the scroll listener
         if (this.scrollListener) {
             this.matrixViewComponent.container.nativeElement.removeEventListener('scroll', this.scrollListener);

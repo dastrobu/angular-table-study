@@ -25,7 +25,7 @@ export declare type SizeProvider = number | ReadonlyArray<number> | ((modelIndex
  * Model of the matrix.
  */
 export interface MatrixViewModel<CellType> {
-    readonly cells: CellType[][];
+    readonly cells: ReadonlyArray<ReadonlyArray<CellType>>;
     readonly rowModel?: MatrixViewRowModel<CellType>;
     readonly colModel?: MatrixViewColModel<CellType>;
 }
@@ -61,7 +61,7 @@ export class Model<CellType> implements MatrixViewModel<CellType> {
 
     private _cells: CellType[][] = [];
 
-    get cells(): CellType[][] {
+    get cells(): ReadonlyArray<ReadonlyArray<CellType>> {
         // TODO DST: in principle this must be immutable
         return this._cells;
     }
@@ -90,6 +90,7 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
     }
 
     private _colWidths: number[];
+    private _colPositions: number[];
 
     get colWidths(): ReadonlyArray<number> {
         return this._colWidths;
@@ -125,6 +126,11 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
         }
     }
 
+    /** @return {number} position of a certain col in px */
+    public position(modelIndex: number): number {
+        return this._colPositions[modelIndex];
+    }
+
     /**
      * @return col height of the indexed col in px
      * @param modelIndex index of the col
@@ -136,6 +142,14 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
         return this._colWidths[modelIndex];
     }
 
+    private updateColPositions() {
+        this._colPositions = [];
+        this._colWidths.reduce((pos, width) => {
+            pos = pos + width;
+            this._colPositions.push(pos);
+            return pos;
+        }, 0);
+    }
 }
 
 export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
@@ -149,6 +163,7 @@ export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
     }
 
     private _rowHeights: number[];
+    private _rowPositions: number[];
 
     get rowHeights(): ReadonlyArray<number> {
         return this._rowHeights;
@@ -182,6 +197,21 @@ export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
         } else {
             throw new Error(`bad rowHeight value, got: ${value}`);
         }
+        this.updateRowPositions();
+    }
+
+    /** @return {number} position of a certain row in px */
+    public position(modelIndex: number): number {
+        return this._rowPositions[modelIndex];
+    }
+
+    private updateRowPositions() {
+        this._rowPositions = [];
+        this._rowHeights.reduce((pos, height) => {
+            pos = pos + height;
+            this._rowPositions.push(pos);
+            return pos;
+        }, 0);
     }
 
     /**
