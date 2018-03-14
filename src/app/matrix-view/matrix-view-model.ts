@@ -1,37 +1,13 @@
 /**
  * default values
  */
+import {RowsCols} from './utils';
+
 const defaults = {
     rowHeight: 20,
-    colWidths: 40,
+    colWidth: 40,
 };
 
-export class MatrixViewModel<CellType> {
-    get rowModel(): RowModel<CellType> {
-        return this._rowModel;
-    }
-
-    get colModel(): ColModel<CellType> {
-        return this._colModel;
-    }
-
-    get cells(): CellType[][] {
-        // TODO DST: in principle this must be immutable
-        return this._cells;
-    }
-
-    set cells(value: CellType[][]) {
-        // make a copy of the arrays, to avoid external changes
-        this._cells = value.map((row: CellType[]) => [...row]);
-        // reinitialize the col and row models
-        this._colModel = new ColModel<CellType>(this);
-        this._rowModel = new RowModel<CellType>(this);
-    }
-
-    private _cells: CellType[][] = [];
-    private _colModel: ColModel<CellType> = new ColModel<CellType>(this);
-    private _rowModel: RowModel<CellType> = new RowModel<CellType>(this);
-}
 
 /**
  * Union type to set sizes on either rows or columns.
@@ -43,31 +19,110 @@ export class MatrixViewModel<CellType> {
  *     (modelIndex: number) => { modelIndex == 0 ? 25px : 20px }
  * </pre>
  */
-declare type SizeProvider = number | number[] | ((modelIndex: number) => number);
+export declare type SizeProvider = number | ReadonlyArray<number> | ((modelIndex: number) => number);
 
-export class ColModel<CellType> {
+/**
+ * Model of the matrix.
+ */
+export interface MatrixViewModel<CellType> {
+    readonly cells: CellType[][];
+    readonly rowModel?: MatrixViewRowModel<CellType>;
+    readonly colModel?: MatrixViewColModel<CellType>;
+}
 
-    private colWidths: number[];
+/**
+ * Model of column properties.
+ */
+export interface MatrixViewColModel<CellType> {
+    readonly colWidths: SizeProvider;
+}
 
-    public updateColWidths(value: SizeProvider) {
-        if (Number.isInteger(value as any)) {
-            this.colWidths = new Array(this.size).fill(value);
-        } else if (Array.isArray(value)) {
-            this.colWidths = [...value];
-        } else if (typeof value === 'function') {
+/**
+ * Model of row properties.
+ */
+export interface MatrixViewRowModel<CellType> {
+    readonly rowHeights: SizeProvider;
+}
+
+export class Model<CellType> implements MatrixViewModel<CellType> {
+
+    readonly colModel: ColModel<CellType> = new ColModel<CellType>();
+    readonly rowModel: RowModel<CellType> = new RowModel<CellType>();
+
+    constructor(matrixViewModel?: MatrixViewModel<CellType>) {
+        // make a copy of the arrays, to avoid external changes
+        if (matrixViewModel) {
+            this._cells = matrixViewModel.cells.map((row: CellType[]) => [...row]);
             const size = this.size;
-            this.colWidths = Array(size);
-            for (let i = 0; i < size; i++) {
-                this.colWidths[i] = value(i);
-            }
-        } else {
-            throw  new Error('bad colHeight value, got: ' + value);
+            this.colModel = new ColModel<CellType>(matrixViewModel.colModel, size.cols);
+            this.rowModel = new RowModel<CellType>(matrixViewModel.rowModel, size.rows);
         }
     }
 
-    constructor(private matrixViewModel: MatrixViewModel<CellType>) {
+    private _cells: CellType[][] = [];
+
+    get cells(): CellType[][] {
+        // TODO DST: in principle this must be immutable
+        return this._cells;
+    }
+
+    get size(): RowsCols<number> {
+        // take length of first row, if any
+        let n = 0;
+        let m = 0;
+        const cells = this._cells;
+        if (cells.length > 0) {
+            n = cells.length;
+            m = cells[0].length;
+        }
+        return {rows: n, cols: m};
+    }
+}
+
+export class ColModel<CellType> implements MatrixViewColModel<CellType> {
+    constructor(viewColModel?: MatrixViewColModel<CellType>, private _size: number = 0) {
         // init colWidths at a default value
-        this.colWidths = new Array(this.size).fill(defaults.colWidths);
+        if (viewColModel) {
+            this.updateColWidths(viewColModel.colWidths);
+        } else {
+            this._colWidths = new Array(this._size).fill(defaults.colWidth);
+        }
+    }
+
+    private _colWidths: number[];
+
+    get colWidths(): ReadonlyArray<number> {
+        return this._colWidths;
+    }
+
+    /**
+     * @return {number} total with of all cols together in px;
+     */
+    get width(): number {
+        return this._colWidths.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
+    }
+
+    /**
+     * Number of cols;
+     */
+    get size(): number {
+        return this._size;
+    }
+
+    public updateColWidths(value: SizeProvider) {
+        if (Number.isInteger(value as any)) {
+            this._colWidths = new Array(this.size).fill(value);
+        } else if (Array.isArray(value)) {
+            this._colWidths = [...value];
+        } else if (typeof value === 'function') {
+            const size = this.size;
+            this._colWidths = Array(size);
+            for (let i = 0; i < size; i++) {
+                this._colWidths[i] = value(i);
+            }
+        } else {
+            throw  new Error(`bad colHeight value, got: ${value}`);
+        }
     }
 
     /**
@@ -76,55 +131,57 @@ export class ColModel<CellType> {
      */
     colWidth(modelIndex: number): number {
         if (modelIndex === null || modelIndex === undefined || modelIndex < 0 || modelIndex > this.size) {
-            throw new Error('bad modelIndex: ' + modelIndex);
+            throw new Error(`bad modelIndex: ${modelIndex}`);
         }
-        return this.colWidths[modelIndex];
-    }
-
-    /**
-     * @return {number} total with of all cols together in px;
-     */
-    get width(): number {
-        return this.colWidths.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
-    }
-
-    /**
-     * Number of cols;
-     */
-    get size(): number {
-        const cells = this.matrixViewModel.cells;
-        // take length of first row, if any
-        if (cells && cells.length > 0) {
-            return cells[0].length;
-        }
-        return 0;
+        return this._colWidths[modelIndex];
     }
 
 }
 
-export class RowModel<CellType> {
-
-    private rowHeights: number[];
-
-    public updateRowHeights(value: SizeProvider) {
-        if (Number.isInteger(value as any)) {
-            this.rowHeights = new Array(this.size).fill(value);
-        } else if (Array.isArray(value)) {
-            this.rowHeights = [...value];
-        } else if (typeof value === 'function') {
-            const size = this.size;
-            this.rowHeights = Array(size);
-            for (let i = 0; i < size; i++) {
-                this.rowHeights[i] = value(i);
-            }
+export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
+    constructor(viewRowModel?: MatrixViewRowModel<CellType>, private _size: number = 0) {
+        // init rowWidths at a default value
+        if (viewRowModel) {
+            this.updateRowHeights(viewRowModel.rowHeights);
         } else {
-            throw new Error('bad rowHeight value, got: ' + value);
+            this._rowHeights = new Array(this.size).fill(defaults.rowHeight);
         }
     }
 
-    constructor(private matrixViewModel: MatrixViewModel<CellType>) {
-        // init rowHeights at a default value
-        this.rowHeights = new Array(this.size).fill(defaults.rowHeight);
+    private _rowHeights: number[];
+
+    get rowHeights(): ReadonlyArray<number> {
+        return this._rowHeights;
+    }
+
+    /**
+     * Number of rows;
+     */
+    get size(): number {
+        return this._size;
+    }
+
+    /**
+     * @return {number} total height of all rows together in px;
+     */
+    get height(): number {
+        return this._rowHeights.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
+    }
+
+    public updateRowHeights(value: SizeProvider) {
+        if (Number.isInteger(value as any)) {
+            this._rowHeights = new Array(this.size).fill(value);
+        } else if (Array.isArray(value)) {
+            this._rowHeights = [...value];
+        } else if (typeof value === 'function') {
+            const size = this.size;
+            this._rowHeights = Array(size);
+            for (let i = 0; i < size; i++) {
+                this._rowHeights[i] = value(i);
+            }
+        } else {
+            throw new Error(`bad rowHeight value, got: ${value}`);
+        }
     }
 
     /**
@@ -133,26 +190,8 @@ export class RowModel<CellType> {
      */
     rowHeight(modelIndex: number): number {
         if (modelIndex === null || modelIndex === undefined || modelIndex < 0 || modelIndex > this.size) {
-            throw new Error('bad modelIndex: ' + modelIndex);
+            throw new Error(`bad modelIndex: ${modelIndex}`);
         }
-        return this.rowHeights[modelIndex];
-    }
-
-    /**
-     * Number of rows;
-     */
-    get size(): number {
-        const cells = this.matrixViewModel.cells;
-        if (cells) {
-            return cells.length;
-        }
-        return 0;
-    }
-
-    /**
-     * @return {number} total height of all rows together in px;
-     */
-    get height(): number {
-        return this.rowHeights.reduce((previousValue, currentValue) => previousValue + currentValue, 0);
+        return this._rowHeights[modelIndex];
     }
 }

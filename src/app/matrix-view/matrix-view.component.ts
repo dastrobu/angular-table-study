@@ -10,20 +10,14 @@ import {
     OnInit,
     ViewChild
 } from '@angular/core';
-import {BoxSize, getScrollbarWidth} from './utils';
-import {isInternetExplorer} from './browser';
-import {MatrixViewModel} from './matrix-view-model';
-import {FullMatrixViewConfig, MatrixViewConfig} from './matrix-view-config';
+import {BoxCorners, BoxSides} from './utils';
+import {MatrixViewModel, Model} from './matrix-view-model';
+import {Config, MatrixViewConfig} from './matrix-view-config';
 import {Log} from './log';
-
-interface HeaderCell {
-    col: number;
-}
-
-interface Cell {
-    col: number;
-    row: number;
-}
+import {Observable} from 'rxjs/Observable';
+import {Subscription} from 'rxjs/Subscription';
+import {MatrixViewViewModel} from './matrix-view-view-model';
+import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 
 @Component({
     // TODO DST: if we use onPush we must make sure, that the inputs are immutable... this is currently not the case.
@@ -33,150 +27,10 @@ interface Cell {
     styleUrls: ['./matrix-view.component.scss']
 })
 export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnDestroy {
+
+    /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
+    private readonly subscriptions: Subscription[] = [];
     private log: Log = new Log();
-
-    get model(): MatrixViewModel<CellType> {
-        return this._model;
-    }
-
-    private _model: MatrixViewModel<CellType>;
-
-    get fullConfig(): FullMatrixViewConfig {
-        return this._fullConfig;
-    }
-
-    @Input()
-    set model(value: MatrixViewModel<CellType>) {
-        this._model = value;
-    }
-
-    @Input()
-    set config(value: MatrixViewConfig) {
-        this._fullConfig = new FullMatrixViewConfig(value);
-
-        // update log level on config changes
-        this.log.level = this._fullConfig.logLevel;
-    }
-
-    private _fullConfig: FullMatrixViewConfig = new FullMatrixViewConfig();
-
-    get fixedTopHeight(): number {
-        this.log.trace(() => 'fixedTopHeight');
-        const nRowsFixedTop = this.fullConfig.showFixed.top;
-        if (!nRowsFixedTop) {
-            this.log.trace(() => 'fixedTopHeight => 0');
-            return 0;
-        }
-        const rowModel = this.model.rowModel;
-        let height = 0;
-        const size = rowModel.size;
-        if (nRowsFixedTop > size) {
-            throw new Error('nRowsFixedTop must be smaller than ' + size + ', got: ' + nRowsFixedTop);
-        }
-        this.log.trace(() => '> ' + height);
-        this.log.trace(() => 'nRowsFixedTop > ' + nRowsFixedTop);
-        for (let i = 0; i < nRowsFixedTop; ++i) {
-            height += rowModel.rowHeight(i);
-            this.log.trace(() => i + '> ' + height);
-        }
-        this.log.trace(() => 'fixedTopHeight => ' + height);
-        return height;
-    }
-
-
-    get fixedBottomHeight(): number {
-        this.log.trace(() => 'fixedBottomHeight');
-        const nRowsFixedBottom = this.fullConfig.showFixed.bottom;
-        if (!nRowsFixedBottom) {
-            this.log.trace(() => 'fixedBottomHeight => 0');
-            return 0;
-        }
-        const rowModel = this.model.rowModel;
-        let height = 0;
-        const size = rowModel.size;
-        if (nRowsFixedBottom > size) {
-            throw new Error('nRowsFixedBottom must be smaller than ' + size + ', got: ' + nRowsFixedBottom);
-        }
-        for (let i = 0; i < nRowsFixedBottom; ++i) {
-            height += rowModel.rowHeight(size - 1 - i);
-        }
-        this.log.trace(() => 'fixedBottomHeight => ' + height);
-        return height;
-    }
-
-
-    get fixedLeftWidth(): number {
-        this.log.trace(() => 'fixedLeftWidth');
-        const nColsFixedLeft = this.fullConfig.showFixed.left;
-        if (!nColsFixedLeft) {
-            this.log.trace(() => 'fixedLeftWidth => 0');
-            return 0;
-        }
-        const colModel = this.model.colModel;
-        let width = 0;
-        const size = colModel.size;
-        if (nColsFixedLeft > size) {
-            throw new Error('nColsFixedLeft must be smaller than ' + size + ', got: ' + nColsFixedLeft);
-        }
-        for (let i = 0; i < nColsFixedLeft; ++i) {
-            width += colModel.colWidth(i);
-        }
-        this.log.trace(() => 'fixedLeftWidth => ' + width);
-        return width;
-    }
-
-    get fixedRightWidth(): number {
-        this.log.trace(() => 'fixedLeftWidth');
-        const nColsFixedRight = this.fullConfig.showFixed.right;
-        if (!nColsFixedRight) {
-            this.log.trace(() => 'fixedRightWidth => 0');
-            return 0;
-        }
-        const colModel = this.model.colModel;
-        let width = 0;
-        const size = colModel.size;
-        if (nColsFixedRight > size) {
-            throw new Error('nColsFixedRight must be smaller than ' + size + ', got: ' + nColsFixedRight);
-        }
-        for (let i = 0; i < nColsFixedRight; ++i) {
-            width += colModel.colWidth(size - 1 - i);
-        }
-        this.log.trace(() => 'fixedRightWidth => ' + width);
-        return width;
-    }
-
-    /**
-     * size of the container (including scrollbars)
-     */
-    get containerSize(): BoxSize {
-        this.log.trace(() => 'containerSize');
-        const computedContainerStyle = getComputedStyle(this.container.nativeElement);
-        const width = Number(computedContainerStyle.width.replace('px', ''));
-        const height = Number(computedContainerStyle.height.replace('px', ''));
-        this.log.trace(() => 'containerSize => ' + JSON.stringify({width: width, height: height}));
-        return {width: width, height: height};
-    }
-
-    /**
-     * size of the viewport, i.e. the size of the container minus scrollbars, if any.
-     */
-    get viewportSize(): BoxSize {
-        this.log.trace(() => 'viewportSize');
-        const containerSize = this.containerSize;
-
-        let width: number;
-        let height: number;
-        // on IE the scrollbar with must not be subtracted, on Chrome and Firefox this is required.
-        if (isInternetExplorer) {
-            width = containerSize.width;
-            height = containerSize.height;
-        } else {
-            width = containerSize.width - getScrollbarWidth();
-            height = containerSize.height - getScrollbarWidth();
-        }
-        this.log.trace(() => 'viewportSize => ' + JSON.stringify({width: width, height: height}));
-        return {width: width, height: height};
-    }
 
     @ViewChild('container')
     public container: ElementRef;
@@ -220,33 +74,61 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     @ViewChild('fixedTopLeft')
     public fixedTopLeft: ElementRef;
 
-    public cells: Cell[] = [];
+    constructor(private changeDetectorRef: ChangeDetectorRef,
+                public zone: NgZone) {
+        // observe config changes
+        this.subscriptions.push(this._config.subscribe(config => {
+            // update log level on config changes
+            this.log.level = config.logLevel;
+        }));
+    }
 
-    public headerCells: HeaderCell[] = [];
-    public colWidth = 200;
-    public rowHeight = 20;
-    public numRows = 200;
-    public numCols = 8;
+    /** the model of the matrix. */
+    private _model: BehaviorSubject<Model<CellType>> = new BehaviorSubject<Model<CellType>>(new Model<CellType>());
 
     /**
-     * Size of the canvas to draw to.
+     * The model must be passed as input. The model is treated as immutable, i.e. changes to the model will not be
+     * reflected in the table directly. Instead, a new model must be passed through the observable.
+     * @param {MatrixViewModel} modelObservable
      */
-    public get canvasSize(): BoxSize {
-        this.log.trace(() => 'viewportSize');
-        const width = this.model.colModel.width;
-        const height = this.model.rowModel.height;
-        this.log.trace(() => 'viewportSize => ' + JSON.stringify({width: width, height: height}));
-        return {width: width, height: height};
+    @Input()
+    set model(modelObservable: Observable<MatrixViewModel<CellType>>) {
+        this.subscriptions.push(modelObservable.subscribe(model => {
+            // call copy constructor, to address mutability
+            this._model.next(new Model<CellType>(model));
+        }));
     }
 
     /**
-     * scroll listener to synchronize scrolling on the main canvas and on the fixed areas.
+     * The full config object contains detailed configuration properties for the whole table. It must not be changed
+     * externally.
+     * @see #config
+     * @type {Config}
      */
-    private scrollListener: () => void;
+    private _config: BehaviorSubject<Config> = new BehaviorSubject<Config>(new Config());
 
+    @Input()
+    set config(configObservable: Observable<MatrixViewConfig>) {
+        this.subscriptions.push(configObservable.subscribe(config => {
+            this._config.next(new Config(config));
+        }));
+    }
 
-    constructor(private changeDetectorRef: ChangeDetectorRef,
-                private zone: NgZone) {
+    /** view model of the matrix */
+    public readonly viewModel: MatrixViewViewModel<CellType> = new MatrixViewViewModel<CellType>(this, this._config, this._model);
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
+     */
+    public get showFixed(): BoxSides<number> {
+        return this._config.value.showFixed;
+    }
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed corners.
+     */
+    public get showFixedCorners(): BoxCorners<boolean> {
+        return this._config.value.showFixedCorners;
     }
 
     ngOnInit() {
@@ -254,34 +136,9 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
         if (!this.model) {
             throw new Error('model is required');
         }
-        this.log.debug(() => 'rowModel.size: ' + this.model.rowModel.size);
-        this.log.debug(() => 'colModel.size: ' + this.model.colModel.size);
 
-        // to optimize performance, the scroll sync runs outside angular.
-        // so one should be careful, what to do here, since there is not change detection running.
-        this.zone.runOutsideAngular(() => {
-            this.scrollListener = () => {
-                const scrollLeft = this.container.nativeElement.scrollLeft;
-                const scrollTop = this.container.nativeElement.scrollTop;
-                const canvasTop = this.canvasTop;
-                if (canvasTop) {
-                    canvasTop.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
-                }
-                const canvasBottom = this.canvasBottom;
-                if (canvasBottom) {
-                    canvasBottom.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
-                }
-                const canvasLeft = this.canvasLeft;
-                if (canvasLeft) {
-                    canvasLeft.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
-                }
-                const canvasRight = this.canvasRight;
-                if (canvasRight) {
-                    canvasRight.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
-                }
-            };
-            this.container.nativeElement.addEventListener('scroll', this.scrollListener);
-        });
+        // init children
+        this.viewModel.ngOnInit();
     }
 
     ngAfterViewInit(): void {
@@ -291,9 +148,12 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     }
 
     ngOnDestroy(): void {
-        // clean up the scroll listener
-        if (this.scrollListener) {
-            this.container.nativeElement.removeEventListener('scroll', this.scrollListener);
+        // unsubscribe from all observables
+        this.subscriptions.forEach(subscription => subscription.unsubscribe());
+
+        // destroy all children, that needs to be destroyed explicitly
+        if (this.viewModel) {
+            this.viewModel.ngOnDestroy();
         }
     }
 
@@ -303,7 +163,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     private updateViewportSize() {
 
         // TODO: check if there is any scroll bar, before subtracting
-        const viewportSize = this.viewportSize;
+        const viewportSize = this.viewModel.viewportSize;
 
         // update the widths of the fixed areas
 
@@ -325,7 +185,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
             fixedRight.nativeElement.style.height = Math.ceil(viewportSize.height) + 'px';
         }
 
-        console.log('containerSize: ' + JSON.stringify(this.containerSize));
+        console.log('containerSize: ' + JSON.stringify(this.viewModel.containerSize));
         console.log('viewportSize: ' + JSON.stringify(viewportSize));
     }
 }

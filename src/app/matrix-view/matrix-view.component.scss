@@ -1,4 +1,3 @@
-
 div {
     box-sizing: border-box;
 }
@@ -10,6 +9,8 @@ div {
     border: solid;
     border-color: black;
     border-width: 1px;
+
+    background-color: beige;
 }
 
 .ship {
@@ -29,10 +30,6 @@ div {
     height: 100%;
     // TODO DST: make configurable
     overflow: scroll;
-    // TODO: test the table insice a component which has itself a high z-index, is there any problem?
-    // make sure the scroll bars lie above the fixed elements, hence the z-index
-
-    background-color: beige;
 }
 
 .fixed {

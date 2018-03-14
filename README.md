@@ -2,14 +2,27 @@
 This is an architecture study, to evaluate the implementation of a feature rich table representation of two 
 dimensional data, i.e. a matrix.
 
- * [Browser Support](#browser-support)
+## Content
+ * [Customization and Styling](#customization-and-styling)
  * [Features](#features)
+ * [Browser Support](#browser-support)
 
-## Browser Support
+## Customization and Styling
 
-Chrome, Firefox, Safari and Internet Explorer (11 and up) should be supported.
+The primary goal of the matrix-view is to have a highly customizable component. That means, no styling will 
+be implemented on this component. Instead the component should be as customizable as possible 
+via [Angular templates](https://angular.io/guide/template-syntax).
 
 ## Features
+
+The features are either implemented or planned.
+
+ * [Fixed Columns and Rows](#fixed-columns-and-rows) (implemented)
+ * [Virtual DOM](#virtual-dom) (planned)
+ * [Selection Model](#selection-model) (planned)
+ * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (planned)
+ * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (planned)
+ * [Colspan and Rowspan](#colspan-and-rowspan) (planned)
 
 ### Fixed Columns and Rows
 
@@ -113,3 +126,49 @@ implementations.
    Wheel events on fixed positioned elements are handled different in Chrome and IE. This means, 
    the view cannot be scrolled via the wheel, when the mouse is positioned over the fixed areas in chrome.
    Custom event propagation may be implemented, but it is not clear, if this will cause any issues.
+
+### Virtual DOM
+
+*planned*
+
+### Selection Model
+
+*planned*
+
+One should be able to select columns, rows and cells in any combination.
+   
+### Column Resizing via Drag and Drop
+
+*planned*
+
+### Column Permutation via Drag and Drop
+
+*planned*
+
+It is not planned to implement a ful drag and drop handler and some special rendering. 
+Instead, an API is defined, which allows to implement drag and drop from, e.g. a 
+header cell. 
+
+### Colspan and Rowspan
+
+*planned*
+
+## Browser Support
+
+Chrome, Firefox, Safari and Internet Explorer (11 and up) should be supported.
+
+## Performance
+
+### Scrolling
+
+Smooth scrolling is important. Scroll events must be handled for [scroll synchronisation](#scroll-synchronisation) 
+and for the [virtual DOM](#virtual-dom).
+
+### Change Detection
+
+Change detection can cause performance issues, hence, the default strategy is replaced 
+by `ChangeDetectionStrategy.OnPush`. This requires that all inputs are either immutable or passed as
+observables, to keep track of changes. A detailed discussion can be found in the article 
+[Angular OnPush Change Detection and Component Design - Avoid Common Pitfalls](https://blog.angular-university.io/onpush-change-detection-how-it-works/).
+
+
