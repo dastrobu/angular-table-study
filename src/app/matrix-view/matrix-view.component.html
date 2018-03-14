@@ -13,7 +13,9 @@
             <ng-container *ngFor="let row of cells; let i = index">
                 <div class="cell"
                      *ngFor="let cell of row; let j = index"
-                     [style.transform]="'translate3d(' + viewModel.colPosition(i) + 'px, ' + viewModel.rowPosition(j) + ', 0)'"
+                     [style.transform]="'translate3d(' + viewModel.colPosition(j) + 'px, ' + viewModel.rowPosition(i) + 'px, 0)'"
+                     [style.height]="viewModel.rowHeight(i) + 'px'"
+                     [style.width]="viewModel.colWidth(j) + 'px'"
                 >
                     {{cell}}
                 </div>

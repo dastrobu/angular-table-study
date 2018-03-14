@@ -2,6 +2,7 @@
  * default values
  */
 import {RowsCols} from './utils';
+import {Log} from './log';
 
 const defaults = {
     rowHeight: 20,
@@ -85,13 +86,14 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
         if (viewColModel) {
             this.updateColWidths(viewColModel.colWidths);
         } else {
-            this._colWidths = new Array(this._size).fill(defaults.colWidth);
+            this.updateColWidths(new Array(this._size).fill(defaults.colWidth));
         }
     }
 
     private _colWidths: number[];
-    private _colPositions: number[];
+    private _colPositions: number[] = [];
 
+    /** @return {number[]} widths (by model index) of all cols in px */
     get colWidths(): ReadonlyArray<number> {
         return this._colWidths;
     }
@@ -124,29 +126,20 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
         } else {
             throw  new Error(`bad colHeight value, got: ${value}`);
         }
+        this.updateColPositions();
     }
 
-    /** @return {number} position of a certain col in px */
-    public position(modelIndex: number): number {
-        return this._colPositions[modelIndex];
+    /** @return {number[]} positions (by model index) of all cols in px */
+    get colPositions(): ReadonlyArray<number> {
+        return this._colPositions;
     }
 
-    /**
-     * @return col height of the indexed col in px
-     * @param modelIndex index of the col
-     */
-    colWidth(modelIndex: number): number {
-        if (modelIndex === null || modelIndex === undefined || modelIndex < 0 || modelIndex > this.size) {
-            throw new Error(`bad modelIndex: ${modelIndex}`);
-        }
-        return this._colWidths[modelIndex];
-    }
 
     private updateColPositions() {
         this._colPositions = [];
         this._colWidths.reduce((pos, width) => {
-            pos = pos + width;
             this._colPositions.push(pos);
+            pos = pos + width;
             return pos;
         }, 0);
     }
@@ -158,13 +151,14 @@ export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
         if (viewRowModel) {
             this.updateRowHeights(viewRowModel.rowHeights);
         } else {
-            this._rowHeights = new Array(this.size).fill(defaults.rowHeight);
+            this.updateRowHeights(new Array(this.size).fill(defaults.rowHeight));
         }
     }
 
     private _rowHeights: number[];
     private _rowPositions: number[];
 
+    /** @return {number[]} heights (by model index) of all rows in px */
     get rowHeights(): ReadonlyArray<number> {
         return this._rowHeights;
     }
@@ -200,16 +194,16 @@ export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
         this.updateRowPositions();
     }
 
-    /** @return {number} position of a certain row in px */
-    public position(modelIndex: number): number {
-        return this._rowPositions[modelIndex];
+    /** @return {number[]} positions (by model index) of all rows in px */
+    get rowPositions(): ReadonlyArray<number> {
+        return this._rowPositions;
     }
 
     private updateRowPositions() {
         this._rowPositions = [];
         this._rowHeights.reduce((pos, height) => {
-            pos = pos + height;
             this._rowPositions.push(pos);
+            pos = pos + height;
             return pos;
         }, 0);
     }

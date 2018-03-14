@@ -16,7 +16,7 @@ import {OnDestroy, OnInit} from '@angular/core';
  * Note: the view model must not be modified externally.
  */
 export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
-    private log: Log = new Log(this.constructor.name + ':');
+    private readonly log: Log = new Log(this.constructor.name + ':');
     private model: Model<CellType>;
     private config: Config;
 
@@ -101,7 +101,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
             showFixedLeft = size;
         }
         for (let i = 0; i < showFixedLeft; ++i) {
-            width += colModel.colWidth(i);
+            width += colModel.colWidths[i];
         }
         this.log.trace(() => `fixedLeftWidth => ${width}`);
         return width;
@@ -123,7 +123,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
             showFixedRight = size;
         }
         for (let i = 0; i < showFixedRight; ++i) {
-            width += colModel.colWidth(size - 1 - i);
+            width += colModel.colWidths[size - 1 - i];
         }
         this.log.trace(() => `fixedRightWidth => ${width}`);
         return width;
@@ -132,7 +132,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
     /** offset of all right fixed areas. To be used to compute the transformations. */
     public get fixedRightOffset(): number {
         // TODO: check if this +1 is really needed...
-        // add 1 pixel to account for a small offset, wich leads to a one pixel gap on the right.
+        // add 1 pixel to account for a small offset, which leads to a one pixel gap on the right.
         return this.viewportSize.width - this.fixedRightWidth + 1;
     }
 
@@ -219,12 +219,27 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
 
     /** @return {number} position of a certain row in px */
     public rowPosition(modelIndex: number): number {
-        return this.model.rowModel.position(modelIndex);
+        this.log.trace(() => `rowPosition(${modelIndex}) -> ${this.model.rowModel.rowPositions[modelIndex]}`);
+        return this.model.rowModel.rowPositions[modelIndex];
     }
+
 
     /** @return {number} position of a certain col in px */
     public colPosition(modelIndex: number): number {
-        return this.model.colModel.position(modelIndex);
+        this.log.trace(() => `colPosition(${modelIndex}) -> ${this.model.colModel.colPositions[modelIndex]}`);
+        return this.model.colModel.colPositions[modelIndex];
+    }
+
+    /** @return {number} rowPosition of a certain row in px */
+    public rowHeight(modelIndex: number): number {
+        this.log.trace(() => `rowHeight(${modelIndex}) -> ${this.model.rowModel.rowHeight(modelIndex)}`);
+        return this.model.rowModel.rowHeight(modelIndex);
+    }
+
+    /** @return {number} colPosition of a certain col in px */
+    public colWidth(modelIndex: number): number {
+        this.log.trace(() => `colWidth(${modelIndex}) -> ${this.model.colModel.colWidths[modelIndex]}`);
+        return this.model.colModel.colWidths[modelIndex];
     }
 
     ngOnDestroy(): void {

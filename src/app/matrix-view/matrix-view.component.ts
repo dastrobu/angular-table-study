@@ -30,7 +30,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
 
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
-    private log: Log = new Log(this.constructor.name + ':');
+    private readonly log: Log = new Log(this.constructor.name + ':');
 
     @ViewChild('container')
     public container: ElementRef;
@@ -86,6 +86,13 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     /** the model of the matrix. */
     private _model: BehaviorSubject<Model<CellType>> = new BehaviorSubject<Model<CellType>>(new Model<CellType>());
 
+    @Input()
+    set config(configObservable: Observable<MatrixViewConfig>) {
+        this.subscriptions.push(configObservable.subscribe(config => {
+            this._config.next(new Config(config));
+        }));
+    }
+
     /**
      * The model must be passed as input. The model is treated as immutable, i.e. changes to the model will not be
      * reflected in the table directly. Instead, a new model must be passed through the observable.
@@ -100,6 +107,12 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
             }
             // call copy constructor, to address mutability
             this._model.next(new Model<CellType>(model));
+            this.log.debug(() => `initialized new model with size: ${JSON.stringify(this._model.value.size)})`);
+            this.log.trace(() => `colModel.size: ${this._model.value.colModel.size}`);
+            this.log.trace(() => `colWidths: ${this._model.value.colModel.colWidths}`);
+            this.log.trace(() => `colPositions: ${this._model.value.colModel.colPositions}`);
+            this.log.trace(() => `rowHeights: ${this._model.value.rowModel.rowHeights}`);
+            this.log.trace(() => `rowPositions: ${this._model.value.rowModel.rowPositions}`);
         }));
     }
 
@@ -110,13 +123,6 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
      * @type {Config}
      */
     private _config: BehaviorSubject<Config> = new BehaviorSubject<Config>(new Config());
-
-    @Input()
-    set config(configObservable: Observable<MatrixViewConfig>) {
-        this.subscriptions.push(configObservable.subscribe(config => {
-            this._config.next(new Config(config));
-        }));
-    }
 
     /** view model of the matrix */
     public readonly viewModel: MatrixViewViewModel<CellType> = new MatrixViewViewModel<CellType>(this, this._config, this._model);

@@ -15,13 +15,24 @@ export class AppComponent implements OnInit {
     };
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
 
+    rows = 200;
+    cols = 20;
+
     ngOnInit(): void {
-        this.modelSubject.next(
-            {
-                cells: [
-                    // ['Header 1', 'Header 2', 'Header 3'],
-                ]
-            });
+        const cells = [];
+        for (let i = 0; i < this.rows; ++i) {
+            const row = [];
+            for (let j = 0; j < this.cols; ++j) {
+                row.push(`Cell ${i} ${j}`);
+            }
+            cells.push(row);
+        }
+        this.modelSubject.next({
+            cells: cells,
+            colModel: {
+                colWidths: 100,
+            }
+        });
 
     }
 }
