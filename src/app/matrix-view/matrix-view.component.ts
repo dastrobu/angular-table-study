@@ -88,8 +88,16 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     @Input()
     set config(configObservable: Observable<MatrixViewConfig>) {
+        // TODO DST: we mus explicitly store the observable and cleanup the subscription if a new observable is passed
         this.subscriptions.push(configObservable.subscribe(config => {
             this._config.next(new Config(config));
+            this.changeDetectorRef.markForCheck();
+            // it is a bit ugly, that we must run updateViewportSize twice, however, otherwise the sizes of the fixed
+            // areas are not computed correctly, so currently we simply live with it.
+            this.updateViewportSize(() => {
+                this.changeDetectorRef.detectChanges();
+                this.updateViewportSize();
+            });
         }));
     }
 
@@ -100,6 +108,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
      */
     @Input()
     set model(modelObservable: Observable<MatrixViewModel<CellValueType>>) {
+        // TODO DST: we mus explicitly store the observable and cleanup the subscription if a new observable is passed
         this.subscriptions.push(modelObservable.subscribe(model => {
             if (!model) {
                 this.log.debug(() => `replacing undefined model by empty model`);
@@ -113,6 +122,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             this.log.trace(() => `colPositions: ${this._model.value.colModel.colPositions}`);
             this.log.trace(() => `rowHeights: ${this._model.value.rowModel.rowHeights}`);
             this.log.trace(() => `rowPositions: ${this._model.value.rowModel.rowPositions}`);
+            this.changeDetectorRef.markForCheck();
         }));
     }
 
@@ -157,9 +167,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     ngAfterViewInit(): void {
         this.log.debug(() => `ngAfterViewInit()`);
-        this.updateViewportSize();
-        this.changeDetectorRef.detectChanges();
-        this.updateViewportSize();
     }
 
     ngOnDestroy(): void {
@@ -175,8 +182,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     /**
      * updates {@link #containerSize} and {@link #viewportSize}
+     * @param callback callback, which is called on completion.
      */
-    private updateViewportSize() {
+    private updateViewportSize(callback?: () => void) {
+        this.log.trace(() => `updateViewportSize()`);
 
         // TODO: check if there is any scroll bar, before subtracting
         const viewportSize = this.viewModel.viewportSize;
@@ -203,6 +212,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
         this.log.debug(() => `containerSize: ${JSON.stringify(this.viewModel.containerSize)}`);
         this.log.debug(() => `viewportSize: ${JSON.stringify(viewportSize)}`);
+
+        if (callback) {
+            callback();
+        }
     }
 }
 

@@ -1,6 +1,49 @@
-<!--<matrix-view-->
-    <!--[config]="{showFixed: {top: 1, left: 1, right: 1, bottom: 1}}"-->
-    <!--style="width: calc(80% + 2px); height: 200px; margin-left: auto; margin-right: auto; margin-top: 20px; display: block"></matrix-view>-->
+<table>
+    <tr>
+        <td><label>cols</label></td>
+        <td><input title="cols" type="text" [formControl]="colCountFormControl" size="3"></td>
+    </tr>
+    <tr>
+        <td><label>rows</label></td>
+        <td><input title="rows" type="text" [formControl]="rowCountFormControl" size="3">
+        </td>
+    </tr>
+    <tr>
+        <td><label>fixed top</label></td>
+        <td><input title="fixed top" type="checkbox" [formControl]="fixedTopFormControl"></td>
+    </tr>
+    <tr>
+        <td><label>fixed bottom</label></td>
+        <td><input title="fixed bottom" type="checkbox" [formControl]="fixedBottomFormControl"></td>
+    </tr>
+    <tr>
+        <td><label>fixed left</label></td>
+        <td><input title="fixed right" type="checkbox" [formControl]="fixedLeftFormControl"></td>
+    </tr>
+    <tr>
+        <td><label>fixed right</label></td>
+        <td><input title="fixed right" type="checkbox" [formControl]="fixedRightFormControl"></td>
+    </tr>
+    <tr>
+        <td><label>fixed right</label></td>
+        <td><input title="fixed right" type="checkbox" [formControl]="fixedRightFormControl"></td>
+    </tr>
+    <tr>
+        <td><label>log level</label></td>
+        <td>
+            <select title="log level" [formControl]="logLevelFormControl">
+                <option>off</option>
+                <option>info</option>
+                <option>debug</option>
+                <option>trace</option>
+            </select><br>
+        </td>
+    </tr>
+    <tr>
+        <td></td>
+        <td><input title="ok" type="button" value="OK" (click)="ok()"></td>
+    </tr>
+</table>
 <matrix-view
     [config]="configSubject"
     [model]="modelSubject"

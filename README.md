@@ -172,3 +172,7 @@ observables, to keep track of changes. A detailed discussion can be found in the
 [Angular OnPush Change Detection and Component Design - Avoid Common Pitfalls](https://blog.angular-university.io/onpush-change-detection-how-it-works/).
 
 
+## Known Issues
+
+ * Fixed areas do not work correctly, if the number for rows/cols is smaller or equal to the number of fixed cols/rows.
+ * Wheel scrolling over fixed areas does not work in Chrome.

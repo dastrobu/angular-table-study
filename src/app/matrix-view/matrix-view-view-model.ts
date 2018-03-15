@@ -51,7 +51,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
     /** @return {number} height of the top fixed area in px. */
     public get fixedTopHeight(): number {
-        this.log.trace(() => 'fixedTopHeight');
+        this.log.trace(() => `fixedTopHeight`);
         let nRowsFixedTop = this.matrixViewComponent.showFixed.top;
         if (!nRowsFixedTop) {
             this.log.trace(() => 'fixedTopHeight => 0');
@@ -74,10 +74,10 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
     /** @return {number} height of the bottom fixed area in px. */
     public get fixedBottomHeight(): number {
-        this.log.trace(() => 'fixedBottomHeight');
+        this.log.trace(() => `fixedBottomHeight`);
         let showFixedBottom = this.config.showFixed.bottom;
         if (!showFixedBottom) {
-            this.log.trace(() => 'fixedBottomHeight => 0');
+            this.log.trace(() => `fixedBottomHeight => 0`);
             return 0;
         }
         const rowModel = this.model.rowModel;
@@ -96,10 +96,10 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
     /** @return {number} width of the left fixed area in px. */
     public get fixedLeftWidth(): number {
-        this.log.trace(() => 'fixedLeftWidth');
+        this.log.trace(() => `fixedLeftWidth`);
         let showFixedLeft = this.config.showFixed.left;
         if (!showFixedLeft) {
-            this.log.trace(() => 'fixedLeftWidth => 0');
+            this.log.trace(() => `fixedLeftWidth => 0`);
             return 0;
         }
         const colModel = this.model.colModel;
@@ -121,7 +121,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         this.log.trace(() => 'fixedRightWidth');
         let showFixedRight = this.config.showFixed.right;
         if (!showFixedRight) {
-            this.log.trace(() => 'fixedRightWidth => 0');
+            this.log.trace(() => `fixedRightWidth => 0`);
             return 0;
         }
         const colModel = this.model.colModel;
@@ -166,7 +166,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
      * size of the viewport, i.e. the size of the container minus scrollbars, if any.
      */
     public get viewportSize(): BoxSize {
-        this.log.trace(() => 'viewportSize');
+        this.log.trace(() => `viewportSize`);
         const containerSize = this.containerSize;
 
         let width: number;
@@ -294,10 +294,11 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         const fixedLeft = this.fixedLeft;
         const fixedRight = this.fixedRight;
         const scrollableCells = [];
+        // TODO DST: handle special case, where size.rows <= fixedBottom (for all fixed areas)
         this.model.cells
             .slice(this.fixedTop, size.rows - fixedBottom)
             .forEach((row, rowIndex) => {
-                row.slice(fixedLeft, size.rows - fixedRight)
+                row.slice(fixedLeft, size.cols - fixedRight)
                     .forEach((cell, collIndex) => {
                         const i = rowIndex + fixedTop;
                         const j = collIndex + fixedLeft;

@@ -2,6 +2,7 @@ import {Component, OnInit} from '@angular/core';
 import {MatrixViewModel} from './matrix-view/matrix-view-model';
 import {MatrixViewConfig} from './matrix-view/matrix-view-config';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
+import {FormControl} from '@angular/forms';
 
 @Component({
     selector: 'app-root',
@@ -10,19 +11,51 @@ import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 })
 export class AppComponent implements OnInit {
     modelSubject = new BehaviorSubject<MatrixViewModel<string>>(null);
-    private config: MatrixViewConfig = {
-        showFixed: {top: 2, left: 1, right: 1, bottom: 1}, logLevel: 'debug'
-    };
+    colCountFormControl = new FormControl();
+    private config: MatrixViewConfig = {};
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
+    rowCountFormControl = new FormControl();
+    fixedTopFormControl = new FormControl();
+    fixedBottomFormControl = new FormControl();
+    fixedLeftFormControl = new FormControl();
+    fixedRightFormControl = new FormControl();
+    logLevelFormControl = new FormControl();
 
-    rows = 100;
-    cols = 20;
+    constructor() {
+        this.colCountFormControl.setValue(10);
+        this.rowCountFormControl.setValue(50);
+        this.fixedTopFormControl.setValue(true);
+        this.fixedBottomFormControl.setValue(true);
+        this.fixedRightFormControl.setValue(true);
+        this.fixedLeftFormControl.setValue(true);
+        this.logLevelFormControl.setValue('debug');
+    }
+
 
     ngOnInit(): void {
+        this.updateMatrix();
+    }
+
+    ok(): void {
+        this.updateMatrix();
+    }
+
+    private updateMatrix() {
+        console.log('updateMatrix()');
+        this.config = {
+            logLevel: this.logLevelFormControl.value,
+            showFixed: {
+                top: this.fixedTopFormControl.value,
+                bottom: this.fixedBottomFormControl.value,
+                left: this.fixedLeftFormControl.value,
+                right: this.fixedRightFormControl.value,
+            }
+        };
+        this.configSubject.next(this.config);
         const cells = [];
-        for (let i = 0; i < this.rows; ++i) {
+        for (let i = 0; i < this.rowCountFormControl.value; ++i) {
             const row = [];
-            for (let j = 0; j < this.cols; ++j) {
+            for (let j = 0; j < this.colCountFormControl.value; ++j) {
                 row.push(`Cell ${i} ${j}`);
             }
             cells.push(row);
@@ -33,6 +66,5 @@ export class AppComponent implements OnInit {
                 colWidths: 100,
             }
         });
-
     }
 }
