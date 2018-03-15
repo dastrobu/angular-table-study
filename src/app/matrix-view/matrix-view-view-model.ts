@@ -29,6 +29,7 @@ export interface Tile<CellValueType> {
     readonly cells: Cell<CellValueType>[];
 }
 
+
 /**
  * The view model provides all information on the view, i.e. especially size information on various parts of the matrix.
  * Note: the view model must not be modified externally.
@@ -43,8 +44,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
     /** scroll listener to synchronize scrolling on the main canvas and on the fixed areas. */
     private scrollListener: () => void;
-    /** size definition of the tiles */
-    private tileSize: BoxSize;
 
     constructor(private matrixViewComponent: MatrixViewComponent<CellValueType>,
                 configObservable: Observable<Config>,
@@ -57,7 +56,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
             // update log level
             this.log.level = config.logLevel;
-            this.tileSize = config.tileSize;
         }));
         this.subscriptions.push(modelObservable.subscribe(model => {
             this.model = model;
@@ -194,8 +192,11 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             width = containerSize.width - scrollbarWidth;
             height = containerSize.height - scrollbarWidth;
         }
-        this.log.trace(() => `viewportSize => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
+        const viewportSize = {width: width, height: height};
+        // TODO DST: make viewportSize observable, instead of passing it directly
+        this.config.tileRenderStrategy.viewportSize = viewportSize;
+        this.log.trace(() => `viewportSize => ${JSON.stringify(viewportSize)}`);
+        return viewportSize;
     }
 
     /**
@@ -206,8 +207,11 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         const model = this.model;
         const width = model.colModel.width;
         const height = model.rowModel.height;
-        this.log.trace(() => `canvasSize => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
+        // TODO DST: make viewportSize observable, instead of passing it directly
+        const canvasSize = {width: width, height: height};
+        this.config.tileRenderStrategy.canvasSize = canvasSize;
+        this.log.trace(() => `canvasSize => ${JSON.stringify(canvasSize)}`);
+        return canvasSize;
     }
 
     ngOnInit(): void {
@@ -246,6 +250,17 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                 if (canvasRight) {
                     canvasRight.nativeElement.style.top = scrollTopPx;
                 }
+
+                // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
+
+                // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
+                const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles({
+                    left: containerNativeElement.scrollLeft,
+                    top: containerNativeElement.scrollTop
+                });
+
+                // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
+
             };
             this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
         });

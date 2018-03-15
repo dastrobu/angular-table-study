@@ -1,14 +1,14 @@
 import {Log, LogLevel} from './log';
 import {BoxCorners, BoxSides, BoxSize} from './utils';
+import {DefaultTileRenderStrategy, TileRenderStrategy} from './matrix-view-tile-renderer/tile-render-strategy';
 
 export const defaults = {
     logLevel: 'off' as LogLevel,
     rowHeight: 20,
     colWidth: 40,
     showFixed: {top: 0, left: 0, right: 0, bottom: 0} as BoxSides<number>,
-    tileSize: {width: 200, height: 200} as BoxSize
+    tileSize: {width: 200, height: 200} as BoxSize,
 };
-
 
 export interface MatrixViewConfig {
     /**
@@ -42,6 +42,11 @@ export interface MatrixViewConfig {
      * size of the tiles to use for the virtual dom.
      */
     readonly tileSize?: BoxSize;
+
+    /**
+     * strategy to determine which tiles to render.
+     */
+    readonly tileRenderStrategy?: TileRenderStrategy;
 }
 
 export class Config implements MatrixViewConfig {
@@ -55,6 +60,7 @@ export class Config implements MatrixViewConfig {
         bottomRight: false,
     };
     private readonly log: Log = new Log(this.constructor.name + ':');
+    tileRenderStrategy: TileRenderStrategy = new DefaultTileRenderStrategy();
 
     /** copy constructor, which extracts all information and stores it */
     constructor(config?: MatrixViewConfig) {
@@ -65,6 +71,19 @@ export class Config implements MatrixViewConfig {
         if (config.logLevel !== undefined && config.logLevel !== null) {
             this.logLevel = config.logLevel;
             this.log.info(() => `did set logLevel: ${this.logLevel}`);
+        }
+
+        if (config.tileSize !== undefined && config.tileSize !== null) {
+            this.tileSize = config.tileSize;
+            this.log.info(() => `did set tileSize: ${this.tileSize}`);
+        }
+
+        if (config.tileRenderStrategy !== undefined && config.tileRenderStrategy !== null) {
+            this.tileRenderStrategy = config.tileRenderStrategy;
+
+            // pass tile size to renderer strategy
+            this.tileRenderStrategy.tileSize = this.tileSize;
+            this.log.info(() => `did set tileRenderStrategy: ${this.tileRenderStrategy}`);
         }
 
         // determine fixed config
