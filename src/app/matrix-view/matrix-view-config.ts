@@ -80,11 +80,11 @@ export class Config implements MatrixViewConfig {
 
         if (config.tileRenderStrategy !== undefined && config.tileRenderStrategy !== null) {
             this.tileRenderStrategy = config.tileRenderStrategy;
-
-            // pass tile size to renderer strategy
-            this.tileRenderStrategy.tileSize = this.tileSize;
             this.log.info(() => `did set tileRenderStrategy: ${this.tileRenderStrategy}`);
         }
+
+        // pass tile size to renderer strategy
+        this.tileRenderStrategy.tileSize = this.tileSize;
 
         // determine fixed config
         if (config.showFixed !== undefined && config.showFixed !== null) {

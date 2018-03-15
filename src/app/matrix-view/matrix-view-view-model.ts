@@ -24,9 +24,9 @@ export interface Cell<CellValueType> {
 export interface Tile<CellValueType> {
     readonly viewIndex: RowCol<number>;
     readonly position: Point2D;
-    readonly visible: boolean;
     readonly size: BoxSize;
     readonly cells: Cell<CellValueType>[];
+    readonly rowMajorIndex: number;
 }
 
 
@@ -38,7 +38,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     private readonly log: Log = new Log(this.constructor.name + ':');
     private model: Model<CellValueType>;
     private config: Config;
-
+    private _tileSize: BoxSize = {width: 0, height: 0};
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
 
@@ -214,56 +214,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         return canvasSize;
     }
 
-    ngOnInit(): void {
-        this.log.debug(() => `ngOnInit()`);
-        const matrixViewComponent = this.matrixViewComponent;
-        // to optimize performance, the scroll sync runs outside angular.
-        // so one should be careful, what to do here, since there is not change detection running.
-        matrixViewComponent.zone.runOutsideAngular(() => {
-            const containerNativeElement = this.matrixViewComponent.container.nativeElement;
-            this.scrollListener = () => {
-                const scrollLeftPx = -containerNativeElement.scrollLeft + 'px';
-                const scrollTopPx = -containerNativeElement.scrollTop + 'px';
-                // to synchronize scroll there are several options.
-                // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
-                //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
-                //    performance.
-                // 2. use scrollTo(scrollLeft, 0)
-                //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
-                // 3. use left = -scrollLeft px
-                //    This works in all Browsers and scrolling performance is the best one of all three options.
-                //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
-
-                const canvasTop = matrixViewComponent.canvasTop;
-                if (canvasTop) {
-                    canvasTop.nativeElement.style.left = scrollLeftPx;
-                }
-                const canvasBottom = matrixViewComponent.canvasBottom;
-                if (canvasBottom) {
-                    canvasBottom.nativeElement.style.left = scrollLeftPx;
-                }
-                const canvasLeft = matrixViewComponent.canvasLeft;
-                if (canvasLeft) {
-                    canvasLeft.nativeElement.style.top = scrollTopPx;
-                }
-                const canvasRight = matrixViewComponent.canvasRight;
-                if (canvasRight) {
-                    canvasRight.nativeElement.style.top = scrollTopPx;
-                }
-
-                // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
-
-                // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
-                const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles({
-                    left: containerNativeElement.scrollLeft,
-                    top: containerNativeElement.scrollTop
-                });
-
-                // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
-
-            };
-            this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
-        });
+    get tileSize(): BoxSize {
+        return this._tileSize;
     }
 
     /**
@@ -287,13 +239,13 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         return n;
     }
 
-
     /** @return {number} position of a certain col in px */
     public colPosition(modelIndex: number): number {
         const n = this.model.colModel.colPositions[modelIndex];
         this.log.trace(() => `colPosition(${modelIndex}) => ${n}`);
         return n;
     }
+
 
     /** @return {number} rowHeight of a certain row in px */
     public rowHeight(modelIndex: number): number {
@@ -477,8 +429,12 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         const n = Math.ceil(canvasHeight / tileHeight);
         const canvasWidth = canvasSize.width;
         const m = Math.ceil(canvasWidth / tileWidth);
+        // store number of tiles
+        this._tileSize = {width: m, height: n};
 
         const flatTiles: Tile<CellValueType>[] = [];
+
+        // tiles in row major order
         const tiles: Tile<CellValueType>[][] = [];
         for (let i = 0; i < n; i++) {
             const tileRow: Tile<CellValueType>[] = [];
@@ -499,7 +455,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                 const tile: Tile<CellValueType> = {
                     viewIndex: {row: i, col: j},
                     position: {top: top, left: left},
-                    visible: true,
+                    // compute the row major flat index for lookup and comparison
+                    rowMajorIndex: left + top * m,
                     size: {width: width, height: height},
                     cells: []
                 };
@@ -522,6 +479,75 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         });
 
         return flatTiles;
+    }
+
+    ngOnInit(): void {
+        this.log.debug(() => `ngOnInit()`);
+        const matrixViewComponent = this.matrixViewComponent;
+        // to optimize performance, the scroll sync runs outside angular.
+        // so one should be careful, what to do here, since there is not change detection running.
+        matrixViewComponent.zone.runOutsideAngular(() => {
+            const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+            this.scrollListener = () => {
+                const scrollLeftPx = -containerNativeElement.scrollLeft + 'px';
+                const scrollTopPx = -containerNativeElement.scrollTop + 'px';
+                // to synchronize scroll there are several options.
+                // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
+                //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
+                //    performance.
+                // 2. use scrollTo(scrollLeft, 0)
+                //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
+                // 3. use left = -scrollLeft px
+                //    This works in all Browsers and scrolling performance is the best one of all three options.
+                //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
+
+                const canvasTop = matrixViewComponent.canvasTop;
+                if (canvasTop) {
+                    canvasTop.nativeElement.style.left = scrollLeftPx;
+                }
+                const canvasBottom = matrixViewComponent.canvasBottom;
+                if (canvasBottom) {
+                    canvasBottom.nativeElement.style.left = scrollLeftPx;
+                }
+                const canvasLeft = matrixViewComponent.canvasLeft;
+                if (canvasLeft) {
+                    canvasLeft.nativeElement.style.top = scrollTopPx;
+                }
+                const canvasRight = matrixViewComponent.canvasRight;
+                if (canvasRight) {
+                    canvasRight.nativeElement.style.top = scrollTopPx;
+                }
+
+                // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
+
+                // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
+                const n = this.tileSize.width;
+                const visibleTiles: ReadonlyArray<number> = this.config.tileRenderStrategy.getVisibleTiles({
+                    left: containerNativeElement.scrollLeft,
+                    top: containerNativeElement.scrollTop
+                })
+                // map to row major flat indices
+                    .map(viewIndex => viewIndex.row * n + viewIndex.col);
+
+                this.matrixViewComponent.tileRenderers.forEach(renderer => {
+                    if (visibleTiles.indexOf(renderer.tile.rowMajorIndex) !== -1) {
+                        // tile should not be visible, check if it is currently visible
+                        if (renderer.visible) {
+                            renderer.visible = false;
+                            renderer.changeDetectionRef.detectChanges();
+                        }
+                    } else {
+                        if (!renderer.visible) {
+                            renderer.visible = true;
+                            renderer.changeDetectionRef.detectChanges();
+                        }
+                    }
+                });
+                // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
+
+            };
+            this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
+        });
     }
 }
 

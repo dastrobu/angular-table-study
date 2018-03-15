@@ -1,12 +1,15 @@
-<!-- it seems that top and left performs better than translate3d -->
-<!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
-<div class="cell"
-     *ngFor="let cell of tile.cells"
-     [style.left]="cell.position.left - tile.position.left + 'px'"
-     [style.top]="cell.position.top - tile.position.top + 'px'"
-     [style.height]="cell.size.height + 'px'"
-     [style.width]="cell.size.width + 'px'"
->
-    {{cell.value}}
-</div>
-
+<!-- ng-contianer is perfect here, since an aditional cluttering of the DOM is avoided -->
+<ng-container *ngIf="visible">
+    <!-- it seems that top and left performs better than translate3d -->
+    <!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
+    <div
+        class="cell"
+        *ngFor="let cell of tile.cells"
+        [style.left]="cell.position.left - tile.position.left + 'px'"
+        [style.top]="cell.position.top - tile.position.top + 'px'"
+        [style.height]="cell.size.height + 'px'"
+        [style.width]="cell.size.width + 'px'"
+    >
+        {{cell.value}}
+    </div>
+</ng-container>

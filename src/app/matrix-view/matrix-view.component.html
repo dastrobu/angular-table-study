@@ -9,9 +9,11 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
+            <!-- TODO: initial visibility must be computed -->
             <matrix-view-tile-renderer
                 *ngFor="let tile of viewModel.scrollableTiles; trackBy: tile?.viewIndex"
                 [tile]="tile"
+                [visible]="true"
                 [style.top]="tile.position.top + 'px'"
                 [style.left]="tile.position.left + 'px'"
                 [style.width]="tile.size.width + 'px'"
