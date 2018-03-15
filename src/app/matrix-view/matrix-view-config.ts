@@ -1,5 +1,14 @@
 import {Log, LogLevel} from './log';
-import {BoxCorners, BoxSides} from './utils';
+import {BoxCorners, BoxSides, BoxSize} from './utils';
+
+export const defaults = {
+    logLevel: 'off' as LogLevel,
+    rowHeight: 20,
+    colWidth: 40,
+    showFixed: {top: 0, left: 0, right: 0, bottom: 0} as BoxSides<number>,
+    tileSize: {width: 200, height: 200} as BoxSize
+};
+
 
 export interface MatrixViewConfig {
     /**
@@ -28,17 +37,17 @@ export interface MatrixViewConfig {
      * log level for debugging purposes
      */
     readonly logLevel?: LogLevel;
+
+    /**
+     * size of the tiles to use for the virtual dom.
+     */
+    readonly tileSize?: BoxSize;
 }
 
 export class Config implements MatrixViewConfig {
-    showFixed: BoxSides<number> = {
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-    };
-
-    logLevel: LogLevel = 'off';
+    showFixed: BoxSides<number> = defaults.showFixed;
+    logLevel: LogLevel = defaults.logLevel;
+    tileSize: BoxSize = defaults.tileSize;
     showFixedCorners: BoxCorners<boolean> = {
         topLeft: false,
         topRight: false,

@@ -4,11 +4,13 @@ import {NgModule} from '@angular/core';
 import {AppComponent} from './app.component';
 import {MatrixViewComponent} from './matrix-view/matrix-view.component';
 import {ReactiveFormsModule} from '@angular/forms';
+import {MatrixViewTileRendererComponent} from './matrix-view/matrix-view-tile-renderer/matrix-view-tile-renderer.component';
 
 @NgModule({
     declarations: [
         AppComponent,
-        MatrixViewComponent
+        MatrixViewComponent,
+        MatrixViewTileRendererComponent
     ],
     imports: [
         BrowserModule,

@@ -22,12 +22,12 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(10);
-        this.rowCountFormControl.setValue(50);
-        this.fixedTopFormControl.setValue(true);
-        this.fixedBottomFormControl.setValue(true);
-        this.fixedRightFormControl.setValue(true);
-        this.fixedLeftFormControl.setValue(true);
+        this.colCountFormControl.setValue(3);
+        this.rowCountFormControl.setValue(1);
+        this.fixedTopFormControl.setValue(false);
+        this.fixedBottomFormControl.setValue(false);
+        this.fixedRightFormControl.setValue(false);
+        this.fixedLeftFormControl.setValue(false);
         this.logLevelFormControl.setValue('debug');
     }
 

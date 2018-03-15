@@ -9,23 +9,21 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
-            <!-- it seems that top and left performs better than translate3d -->
-            <!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
-            <div class="cell"
-                 *ngFor="let cell of viewModel.scrollableCells"
-                 [style.left]="cell.position.left + 'px'"
-                 [style.top]="cell.position.top + 'px'"
-                 [style.height]="cell.size.height + 'px'"
-                 [style.width]="cell.size.width + 'px'"
+            <matrix-view-tile-renderer
+                *ngFor="let tile of viewModel.scrollableTiles; trackBy: tile?.viewIndex"
+                [tile]="tile"
+                [style.top]="tile.position.top + 'px'"
+                [style.left]="tile.position.left + 'px'"
+                [style.width]="tile.size.width + 'px'"
+                [style.height]="tile.size.height + 'px'"
             >
-                {{cell.value}}
-            </div>
+            </matrix-view-tile-renderer>
         </div>
     </div>
 
     <!-- all fixed areas sit outside the container -->
     <!-- START: fixed areas -->
-    <div *ngIf="showFixed.top"
+    <div *ngIf="viewModel.showFixed.top"
          #fixedTop class="fixed fixed-top"
          [style.height]="viewModel.fixedTopHeight + 'px'"
     >
@@ -48,7 +46,7 @@
             </div>
         </div>
     </div>
-    <div *ngIf="showFixed.right"
+    <div *ngIf="viewModel.showFixed.right"
          #fixedRight class="fixed fixed-right"
          [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, 0, 0)'"
          [style.width]="viewModel.fixedRightWidth + 'px'"
@@ -73,7 +71,7 @@
             </div>
         </div>
     </div>
-    <div *ngIf="showFixed.bottom"
+    <div *ngIf="viewModel.showFixed.bottom"
          #fixedBottom class="fixed fixed-bottom"
          [style.transform]="'translate3d(0, ' + viewModel.fixedBottomOffset + 'px, 0)'"
          [style.height]="viewModel.fixedBottomHeight  + 'px'"
@@ -98,7 +96,7 @@
             </div>
         </div>
     </div>
-    <div *ngIf="showFixed.left"
+    <div *ngIf="viewModel.showFixed.left"
          #fixedLeft class="fixed fixed-left"
          [style.width]="viewModel.fixedLeftWidth  + 'px'"
     >
@@ -119,28 +117,28 @@
             </div>
         </div>
     </div>
-    <div *ngIf="showFixedCorners.topRight"
+    <div *ngIf="viewModel.showFixedCorners.topRight"
          #fixedTopRight class="fixed fixed-top-right"
          [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, 0, 0)'"
          [style.height]="viewModel.fixedTopHeight  + 'px'"
          [style.width]="viewModel.fixedRightWidth + 'px'"
     >
     </div>
-    <div *ngIf="showFixedCorners.bottomRight"
+    <div *ngIf="viewModel.showFixedCorners.bottomRight"
          #fixedBottomRight class="fixed fixed-bottom-right"
          [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, ' + viewModel.fixedBottomOffset + 'px, 0)'"
          [style.width]="viewModel.fixedRightWidth + 'px'"
          [style.height]="viewModel.fixedBottomHeight  + 'px'"
     >
     </div>
-    <div *ngIf="showFixedCorners.bottomLeft"
+    <div *ngIf="viewModel.showFixedCorners.bottomLeft"
          #fixedBottomLeft class="fixed fixed-bottom-left"
          [style.transform]="'translate3d(0, ' + viewModel.fixedBottomOffset + 'px, 0)'"
          [style.height]="viewModel.fixedBottomHeight  + 'px'"
          [style.width]="viewModel.fixedLeftWidth + 'px'"
     >
     </div>
-    <div *ngIf="showFixedCorners.topLeft"
+    <div *ngIf="viewModel.showFixedCorners.topLeft"
          #fixedTopLeft class="fixed fixed-top-left"
          [style.height]="viewModel.fixedTopHeight  + 'px'"
          [style.width]="viewModel.fixedLeftWidth + 'px'"

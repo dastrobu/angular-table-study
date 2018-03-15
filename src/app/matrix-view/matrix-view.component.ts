@@ -10,7 +10,6 @@ import {
     OnInit,
     ViewChild
 } from '@angular/core';
-import {BoxCorners, BoxSides} from './utils';
 import {MatrixViewModel, Model} from './matrix-view-model';
 import {Config, MatrixViewConfig} from './matrix-view-config';
 import {Log} from './log';
@@ -136,24 +135,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     /** view model of the matrix */
     public readonly viewModel: MatrixViewViewModel<CellValueType> = new MatrixViewViewModel<CellValueType>(this, this._config, this._model);
-
-    /**
-     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
-     */
-    public get showFixed(): BoxSides<number> {
-        return this._config.value.showFixed;
-    }
-
-    /**
-     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed corners.
-     */
-    public get showFixedCorners(): BoxCorners<boolean> {
-        return this._config.value.showFixedCorners;
-    }
-
-    public get cells(): ReadonlyArray<ReadonlyArray<CellValueType>> {
-        return this._model.value.cells;
-    }
 
     ngOnInit() {
         this.log.debug(() => `ngOnInit()`);

@@ -2,13 +2,7 @@
  * default values
  */
 import {RowsCols} from './utils';
-import {Log} from './log';
-
-const defaults = {
-    rowHeight: 20,
-    colWidth: 40,
-};
-
+import {defaults} from './matrix-view-config';
 
 /**
  * Union type to set sizes on either rows or columns.

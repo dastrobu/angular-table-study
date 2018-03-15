@@ -7,7 +7,7 @@ import {Log} from './log';
 import {Observable} from 'rxjs/Observable';
 import {Subscription} from 'rxjs/Subscription';
 import {Config} from './matrix-view-config';
-import {BoxSize, Point2D, RowCol} from './utils';
+import {BoxCorners, BoxSides, BoxSize, Point2D, RowCol} from './utils';
 import {isInternetExplorer, scrollbarWidth} from './browser';
 import {OnDestroy, OnInit} from '@angular/core';
 
@@ -18,6 +18,15 @@ export interface Cell<CellValueType> {
     readonly position: Point2D;
     readonly value: CellValueType;
     readonly size: BoxSize;
+}
+
+/** interface for a tile, which is employed to handle the virtual dom */
+export interface Tile<CellValueType> {
+    readonly viewIndex: RowCol<number>;
+    readonly position: Point2D;
+    readonly visible: boolean;
+    readonly size: BoxSize;
+    readonly cells: Cell<CellValueType>[];
 }
 
 /**
@@ -34,15 +43,21 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
     /** scroll listener to synchronize scrolling on the main canvas and on the fixed areas. */
     private scrollListener: () => void;
+    /** size definition of the tiles */
+    private tileSize: BoxSize;
 
     constructor(private matrixViewComponent: MatrixViewComponent<CellValueType>,
                 configObservable: Observable<Config>,
                 modelObservable: Observable<Model<CellValueType>>) {
         this.subscriptions.push(configObservable.subscribe(config => {
             this.config = config;
+            if (!this.config) {
+                throw new Error('no config given, got: ' + this.config);
+            }
 
             // update log level
             this.log.level = config.logLevel;
+            this.tileSize = config.tileSize;
         }));
         this.subscriptions.push(modelObservable.subscribe(model => {
             this.model = model;
@@ -52,7 +67,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     /** @return {number} height of the top fixed area in px. */
     public get fixedTopHeight(): number {
         this.log.trace(() => `fixedTopHeight`);
-        let nRowsFixedTop = this.matrixViewComponent.showFixed.top;
+        let nRowsFixedTop = this.showFixed.top;
         if (!nRowsFixedTop) {
             this.log.trace(() => 'fixedTopHeight => 0');
             return 0;
@@ -234,6 +249,20 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             };
             this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
         });
+    }
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
+     */
+    public get showFixed(): BoxSides<number> {
+        return this.config.showFixed;
+    }
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed corners.
+     */
+    public get showFixedCorners(): BoxCorners<boolean> {
+        return this.config.showFixedCorners;
     }
 
     /** @return {number} position of a certain row in px */
@@ -419,6 +448,66 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         }
     }
 
+    /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get scrollableTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tileSize = this.config.tileSize;
+        const tileWidth = tileSize.width;
+        const tileHeight = tileSize.height;
+
+        const canvasSize = this.canvasSize;
+        const canvasHeight = canvasSize.height;
+        const n = Math.ceil(canvasHeight / tileHeight);
+        const canvasWidth = canvasSize.width;
+        const m = Math.ceil(canvasWidth / tileWidth);
+
+        const flatTiles: Tile<CellValueType>[] = [];
+        const tiles: Tile<CellValueType>[][] = [];
+        for (let i = 0; i < n; i++) {
+            const tileRow: Tile<CellValueType>[] = [];
+            for (let j = 0; j < m; j++) {
+                const top = tileSize.height * i;
+                const left = tileWidth * j;
+                let height = tileHeight;
+                let width = tileWidth;
+
+                // special handling of tiles that are not full sized, because they lie at the boundaries.
+                if (top + height > canvasHeight) {
+                    height = canvasHeight - top;
+                }
+
+                if (left + width > canvasWidth) {
+                    width = canvasWidth - left;
+                }
+                const tile: Tile<CellValueType> = {
+                    viewIndex: {row: i, col: j},
+                    position: {top: top, left: left},
+                    visible: true,
+                    size: {width: width, height: height},
+                    cells: []
+                };
+                tileRow.push(tile);
+                flatTiles.push(tile);
+            }
+            tiles.push(tileRow);
+        }
+
+        this.scrollableCells.forEach(cell => {
+            const left = cell.position.left;
+            const top = cell.position.top;
+
+            // compute tile in which the cell should be located
+            // TODO DST: handle cells correctly, that overlap two or more tiles. Currently we simply assign to left tile.
+            const i = Math.floor(top / tileHeight);
+            const j = Math.floor(left / tileWidth);
+
+            tiles[i][j].cells.push(cell);
+        });
+
+        return flatTiles;
+    }
 }
 
 
