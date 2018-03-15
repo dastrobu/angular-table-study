@@ -203,23 +203,33 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         matrixViewComponent.zone.runOutsideAngular(() => {
             const containerNativeElement = this.matrixViewComponent.container.nativeElement;
             this.scrollListener = () => {
-                const scrollLeft = containerNativeElement.scrollLeft;
-                const scrollTop = containerNativeElement.scrollTop;
+                const scrollLeftPx = -containerNativeElement.scrollLeft + 'px';
+                const scrollTopPx = -containerNativeElement.scrollTop + 'px';
+                // to synchronize scroll there are several options.
+                // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
+                //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
+                //    performance.
+                // 2. use scrollTo(scrollLeft, 0)
+                //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
+                // 3. use left = -scrollLeft px
+                //    This works in all Browsers and scrolling performance is the best one of all three options.
+                //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
+
                 const canvasTop = matrixViewComponent.canvasTop;
                 if (canvasTop) {
-                    canvasTop.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
+                    canvasTop.nativeElement.style.left = scrollLeftPx;
                 }
                 const canvasBottom = matrixViewComponent.canvasBottom;
                 if (canvasBottom) {
-                    canvasBottom.nativeElement.style.transform = 'translate3d(' + -scrollLeft + 'px, 0, 0)';
+                    canvasBottom.nativeElement.style.left = scrollLeftPx;
                 }
                 const canvasLeft = matrixViewComponent.canvasLeft;
                 if (canvasLeft) {
-                    canvasLeft.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+                    canvasLeft.nativeElement.style.top = scrollTopPx;
                 }
                 const canvasRight = matrixViewComponent.canvasRight;
                 if (canvasRight) {
-                    canvasRight.nativeElement.style.transform = 'translate3d(0, ' + -scrollTop + 'px, 0)';
+                    canvasRight.nativeElement.style.top = scrollTopPx;
                 }
             };
             this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
