@@ -25,44 +25,44 @@ export declare type SizeProvider = number | ReadonlyArray<number> | ((modelIndex
 /**
  * Model of the matrix.
  */
-export interface MatrixViewModel<CellType> {
-    readonly cells: ReadonlyArray<ReadonlyArray<CellType>>;
-    readonly rowModel?: MatrixViewRowModel<CellType>;
-    readonly colModel?: MatrixViewColModel<CellType>;
+export interface MatrixViewModel<CellValueType> {
+    readonly cells: ReadonlyArray<ReadonlyArray<CellValueType>>;
+    readonly rowModel?: MatrixViewRowModel<CellValueType>;
+    readonly colModel?: MatrixViewColModel<CellValueType>;
 }
 
 /**
  * Model of column properties.
  */
-export interface MatrixViewColModel<CellType> {
+export interface MatrixViewColModel<CellValueType> {
     readonly colWidths: SizeProvider;
 }
 
 /**
  * Model of row properties.
  */
-export interface MatrixViewRowModel<CellType> {
+export interface MatrixViewRowModel<CellValueType> {
     readonly rowHeights: SizeProvider;
 }
 
-export class Model<CellType> implements MatrixViewModel<CellType> {
+export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
 
-    readonly colModel: ColModel<CellType> = new ColModel<CellType>();
-    readonly rowModel: RowModel<CellType> = new RowModel<CellType>();
+    readonly colModel: ColModel<CellValueType> = new ColModel<CellValueType>();
+    readonly rowModel: RowModel<CellValueType> = new RowModel<CellValueType>();
 
-    constructor(matrixViewModel?: MatrixViewModel<CellType>) {
+    constructor(matrixViewModel?: MatrixViewModel<CellValueType>) {
         // make a copy of the arrays, to avoid external changes
         if (matrixViewModel) {
-            this._cells = matrixViewModel.cells.map((row: CellType[]) => [...row]);
+            this._cells = matrixViewModel.cells.map((row: CellValueType[]) => [...row]);
             const size = this.size;
-            this.colModel = new ColModel<CellType>(matrixViewModel.colModel, size.cols);
-            this.rowModel = new RowModel<CellType>(matrixViewModel.rowModel, size.rows);
+            this.colModel = new ColModel<CellValueType>(matrixViewModel.colModel, size.cols);
+            this.rowModel = new RowModel<CellValueType>(matrixViewModel.rowModel, size.rows);
         }
     }
 
-    private _cells: CellType[][] = [];
+    private _cells: CellValueType[][] = [];
 
-    get cells(): ReadonlyArray<ReadonlyArray<CellType>> {
+    get cells(): ReadonlyArray<ReadonlyArray<CellValueType>> {
         // TODO DST: in principle this must be immutable
         return this._cells;
     }
@@ -80,8 +80,8 @@ export class Model<CellType> implements MatrixViewModel<CellType> {
     }
 }
 
-export class ColModel<CellType> implements MatrixViewColModel<CellType> {
-    constructor(viewColModel?: MatrixViewColModel<CellType>, private _size: number = 0) {
+export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType> {
+    constructor(viewColModel?: MatrixViewColModel<CellValueType>, private _size: number = 0) {
         // init colWidths at a default value
         if (viewColModel) {
             this.updateColWidths(viewColModel.colWidths);
@@ -145,8 +145,8 @@ export class ColModel<CellType> implements MatrixViewColModel<CellType> {
     }
 }
 
-export class RowModel<CellType> implements MatrixViewRowModel<CellType> {
-    constructor(viewRowModel?: MatrixViewRowModel<CellType>, private _size: number = 0) {
+export class RowModel<CellValueType> implements MatrixViewRowModel<CellValueType> {
+    constructor(viewRowModel?: MatrixViewRowModel<CellValueType>, private _size: number = 0) {
         // init rowWidths at a default value
         if (viewRowModel) {
             this.updateRowHeights(viewRowModel.rowHeights);

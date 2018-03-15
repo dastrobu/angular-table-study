@@ -7,17 +7,26 @@ import {Log} from './log';
 import {Observable} from 'rxjs/Observable';
 import {Subscription} from 'rxjs/Subscription';
 import {Config} from './matrix-view-config';
-import {BoxSize} from './utils';
+import {BoxSize, Point2D, RowCol} from './utils';
 import {isInternetExplorer, scrollbarWidth} from './browser';
 import {OnDestroy, OnInit} from '@angular/core';
+
+/** cell representation */
+export interface Cell<CellValueType> {
+    readonly viewIndex: RowCol<number>;
+    readonly modelIndex: RowCol<number>;
+    readonly position: Point2D;
+    readonly value: CellValueType;
+    readonly size: BoxSize;
+}
 
 /**
  * The view model provides all information on the view, i.e. especially size information on various parts of the matrix.
  * Note: the view model must not be modified externally.
  */
-export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
+export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     private readonly log: Log = new Log(this.constructor.name + ':');
-    private model: Model<CellType>;
+    private model: Model<CellValueType>;
     private config: Config;
 
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
@@ -26,9 +35,9 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
     /** scroll listener to synchronize scrolling on the main canvas and on the fixed areas. */
     private scrollListener: () => void;
 
-    constructor(private matrixViewComponent: MatrixViewComponent<CellType>,
+    constructor(private matrixViewComponent: MatrixViewComponent<CellValueType>,
                 configObservable: Observable<Config>,
-                modelObservable: Observable<Model<CellType>>) {
+                modelObservable: Observable<Model<CellValueType>>) {
         this.subscriptions.push(configObservable.subscribe(config => {
             this.config = config;
 
@@ -182,7 +191,7 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
         const model = this.model;
         const width = model.colModel.width;
         const height = model.rowModel.height;
-        this.log.trace(() => `viewportSize => ${JSON.stringify({width: width, height: height})}`);
+        this.log.trace(() => `canvasSize => ${JSON.stringify({width: width, height: height})}`);
         return {width: width, height: height};
     }
 
@@ -219,27 +228,173 @@ export class MatrixViewViewModel<CellType> implements OnInit, OnDestroy {
 
     /** @return {number} position of a certain row in px */
     public rowPosition(modelIndex: number): number {
-        this.log.trace(() => `rowPosition(${modelIndex}) -> ${this.model.rowModel.rowPositions[modelIndex]}`);
-        return this.model.rowModel.rowPositions[modelIndex];
+        const n = this.model.rowModel.rowPositions[modelIndex];
+        this.log.trace(() => `rowPosition(${modelIndex}) => ${n}`);
+        return n;
     }
 
 
     /** @return {number} position of a certain col in px */
     public colPosition(modelIndex: number): number {
-        this.log.trace(() => `colPosition(${modelIndex}) -> ${this.model.colModel.colPositions[modelIndex]}`);
-        return this.model.colModel.colPositions[modelIndex];
+        const n = this.model.colModel.colPositions[modelIndex];
+        this.log.trace(() => `colPosition(${modelIndex}) => ${n}`);
+        return n;
     }
 
-    /** @return {number} rowPosition of a certain row in px */
+    /** @return {number} rowHeight of a certain row in px */
     public rowHeight(modelIndex: number): number {
-        this.log.trace(() => `rowHeight(${modelIndex}) -> ${this.model.rowModel.rowHeight(modelIndex)}`);
-        return this.model.rowModel.rowHeight(modelIndex);
+        const n = this.model.rowModel.rowHeight(modelIndex);
+        this.log.trace(() => `rowHeight(${modelIndex}) => ${n}`);
+        return n;
     }
 
-    /** @return {number} colPosition of a certain col in px */
+    /** @return {number} colWidth of a certain col in px */
     public colWidth(modelIndex: number): number {
-        this.log.trace(() => `colWidth(${modelIndex}) -> ${this.model.colModel.colWidths[modelIndex]}`);
-        return this.model.colModel.colWidths[modelIndex];
+        const n = this.model.colModel.colWidths[modelIndex];
+        this.log.trace(() => `colWidth(${modelIndex}) => ${n}`);
+        return n;
+    }
+
+    /** @return {number} number of cols fixed left */
+    get fixedLeft(): number {
+        const n = Math.min(this.config.showFixed.left, this.model.size.cols);
+        this.log.trace(() => `fixedLeft => ${n}`);
+        return n;
+    }
+
+    /** @return {number} number of cols fixed right */
+    get fixedRight(): number {
+        return Math.min(this.config.showFixed.right, this.model.size.cols);
+    }
+
+    /** @return {number} number of rows fixed at top */
+    get fixedTop(): number {
+        return Math.min(this.config.showFixed.top, this.model.size.rows);
+    }
+
+    /** @return {number} number of rows fixed at bottom */
+    get fixedBottom(): number {
+        return Math.min(this.config.showFixed.bottom, this.model.size.rows);
+    }
+
+    get scrollableCells(): ReadonlyArray<Cell<CellValueType>> {
+        const size = this.model.size;
+        const fixedTop = this.fixedTop;
+        const fixedBottom = this.fixedBottom;
+        const fixedLeft = this.fixedLeft;
+        const fixedRight = this.fixedRight;
+        const scrollableCells = [];
+        this.model.cells
+            .slice(this.fixedTop, size.rows - fixedBottom)
+            .forEach((row, rowIndex) => {
+                row.slice(fixedLeft, size.rows - fixedRight)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex + fixedTop;
+                        const j = collIndex + fixedLeft;
+                        scrollableCells.push({
+                            modelIndex: {row: i, col: j},
+                            viewIndex: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
+                    });
+            });
+        this.log.trace(() => `scrollableCells => ${JSON.stringify(scrollableCells)}`);
+        return scrollableCells;
+    }
+
+    get fixedLeftCells(): ReadonlyArray<Cell<CellValueType>> {
+        const fixedLeft = this.fixedLeft;
+        const fixedLeftCells = [];
+        this.model.cells
+            .forEach((row, rowIndex) => {
+                row.slice(0, fixedLeft)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex;
+                        const j = collIndex;
+                        fixedLeftCells.push({
+                            modelIndex: {row: i, col: j},
+                            viewIndex: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
+                    });
+            });
+        this.log.trace(() => `fixedLeftCells => ${JSON.stringify(fixedLeftCells)}`);
+        return fixedLeftCells;
+    }
+
+    get fixedRightCells(): ReadonlyArray<Cell<CellValueType>> {
+        const size = this.model.size;
+        const fixedRight = this.fixedRight;
+        const fixedRightCells = [];
+        const offset = size.cols - fixedRight;
+        this.model.cells
+            .forEach((row, rowIndex) => {
+                row.slice(offset)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex;
+                        const j = collIndex + offset;
+                        fixedRightCells.push({
+                            modelIndex: {row: i, col: j},
+                            viewIndex: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
+                    });
+            });
+        this.log.trace(() => `fixedRightCells => ${JSON.stringify(fixedRightCells)}`);
+        return fixedRightCells;
+    }
+
+    get fixedTopCells(): ReadonlyArray<Cell<CellValueType>> {
+        const size = this.model.size;
+        const fixedTop = this.fixedTop;
+        const fixedTopCells = [];
+        this.model.cells
+            .slice(0, size.rows - fixedTop)
+            .forEach((row, rowIndex) => {
+                row.forEach((cell, collIndex) => {
+                    const i = rowIndex;
+                    const j = collIndex;
+                    fixedTopCells.push({
+                        modelIndex: {row: i, col: j},
+                        viewIndex: {row: i, col: j},
+                        value: cell,
+                        position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                        size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                    });
+                });
+            });
+        this.log.trace(() => `fixedTopCells => ${JSON.stringify(fixedTopCells)}`);
+        return fixedTopCells;
+    }
+
+    get fixedBottomCells(): ReadonlyArray<Cell<CellValueType>> {
+        const size = this.model.size;
+        const fixedBottom = this.fixedBottom;
+        const fixedBottomCells = [];
+        const offset = size.rows - fixedBottom;
+        this.model.cells
+            .slice(offset)
+            .forEach((row, rowIndex) => {
+                row.forEach((cell, collIndex) => {
+                    const i = rowIndex + offset;
+                    const j = collIndex;
+                    fixedBottomCells.push({
+                        modelIndex: {row: i, col: j},
+                        viewIndex: {row: i, col: j},
+                        value: cell,
+                        position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                        size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                    });
+                });
+            });
+        this.log.trace(() => `fixedBottomCells => ${JSON.stringify(fixedBottomCells)}`);
+        return fixedBottomCells;
     }
 
     ngOnDestroy(): void {

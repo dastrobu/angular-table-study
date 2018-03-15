@@ -9,17 +9,14 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
-            <!-- TODO DST: implement -->
-            <ng-container *ngFor="let row of cells; let i = index">
-                <div class="cell"
-                     *ngFor="let cell of row; let j = index"
-                     [style.transform]="'translate3d(' + viewModel.colPosition(j) + 'px, ' + viewModel.rowPosition(i) + 'px, 0)'"
-                     [style.height]="viewModel.rowHeight(i) + 'px'"
-                     [style.width]="viewModel.colWidth(j) + 'px'"
-                >
-                    {{cell}}
-                </div>
-            </ng-container>
+            <div class="cell"
+                 *ngFor="let cell of viewModel.scrollableCells"
+                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.height]="cell.size.height + 'px'"
+                 [style.width]="cell.size.width + 'px'"
+            >
+                {{cell.value}}
+            </div>
         </div>
     </div>
 
@@ -37,6 +34,14 @@
              [style.min-width]="viewModel.viewportSize.width + 1 + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
+            <div class="cell"
+                 *ngFor="let cell of viewModel.fixedTopCells"
+                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.height]="cell.size.height + 'px'"
+                 [style.width]="cell.size.width + 'px'"
+            >
+                {{cell.value}}
+            </div>
         </div>
     </div>
     <div *ngIf="showFixed.right"
@@ -51,7 +56,16 @@
              [style.height]="viewModel.canvasSize.height + 'px'"
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
+             [style.left]="(viewModel.fixedRightWidth - viewModel.canvasSize.width) + 'px'"
         >
+            <div class="cell"
+                 *ngFor="let cell of viewModel.fixedRightCells"
+                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.height]="cell.size.height + 'px'"
+                 [style.width]="cell.size.width + 'px'"
+            >
+                {{cell.value}}
+            </div>
         </div>
     </div>
     <div *ngIf="showFixed.bottom"
@@ -66,7 +80,16 @@
              [style.height]="viewModel.canvasSize.height + 'px'"
              [style.min-width]="viewModel.viewportSize.width + 1 + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
+             [style.top]="(viewModel.fixedBottomHeight - viewModel.canvasSize.height) + 'px'"
         >
+            <div class="cell"
+                 *ngFor="let cell of viewModel.fixedBottomCells"
+                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.height]="cell.size.height + 'px'"
+                 [style.width]="cell.size.width + 'px'"
+            >
+                {{cell.value}}
+            </div>
         </div>
     </div>
     <div *ngIf="showFixed.left"
@@ -79,6 +102,14 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
+            <div class="cell"
+                 *ngFor="let cell of viewModel.fixedLeftCells"
+                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.height]="cell.size.height + 'px'"
+                 [style.width]="cell.size.width + 'px'"
+            >
+                {{cell.value}}
+            </div>
         </div>
     </div>
     <div *ngIf="showFixedCorners.topRight"

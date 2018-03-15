@@ -11,11 +11,11 @@ import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 export class AppComponent implements OnInit {
     modelSubject = new BehaviorSubject<MatrixViewModel<string>>(null);
     private config: MatrixViewConfig = {
-        showFixed: {top: 1, left: 1, right: 0, bottom: 0}, logLevel: 'debug'
+        showFixed: {top: 2, left: 1, right: 1, bottom: 1}, logLevel: 'debug'
     };
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
 
-    rows = 200;
+    rows = 50;
     cols = 20;
 
     ngOnInit(): void {

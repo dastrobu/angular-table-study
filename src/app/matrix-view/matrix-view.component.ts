@@ -26,7 +26,7 @@ import {BehaviorSubject} from 'rxjs/BehaviorSubject';
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
 })
-export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnDestroy {
+export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit, OnDestroy {
 
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
@@ -84,7 +84,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     }
 
     /** the model of the matrix. */
-    private _model: BehaviorSubject<Model<CellType>> = new BehaviorSubject<Model<CellType>>(new Model<CellType>());
+    private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
 
     @Input()
     set config(configObservable: Observable<MatrixViewConfig>) {
@@ -99,14 +99,14 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
      * @param {MatrixViewModel} modelObservable
      */
     @Input()
-    set model(modelObservable: Observable<MatrixViewModel<CellType>>) {
+    set model(modelObservable: Observable<MatrixViewModel<CellValueType>>) {
         this.subscriptions.push(modelObservable.subscribe(model => {
             if (!model) {
                 this.log.debug(() => `replacing undefined model by empty model`);
-                model = new Model<CellType>();
+                model = new Model<CellValueType>();
             }
             // call copy constructor, to address mutability
-            this._model.next(new Model<CellType>(model));
+            this._model.next(new Model<CellValueType>(model));
             this.log.debug(() => `initialized new model with size: ${JSON.stringify(this._model.value.size)})`);
             this.log.trace(() => `colModel.size: ${this._model.value.colModel.size}`);
             this.log.trace(() => `colWidths: ${this._model.value.colModel.colWidths}`);
@@ -125,7 +125,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
     private _config: BehaviorSubject<Config> = new BehaviorSubject<Config>(new Config());
 
     /** view model of the matrix */
-    public readonly viewModel: MatrixViewViewModel<CellType> = new MatrixViewViewModel<CellType>(this, this._config, this._model);
+    public readonly viewModel: MatrixViewViewModel<CellValueType> = new MatrixViewViewModel<CellValueType>(this, this._config, this._model);
 
     /**
      * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
@@ -141,7 +141,7 @@ export class MatrixViewComponent<CellType> implements OnInit, AfterViewInit, OnD
         return this._config.value.showFixedCorners;
     }
 
-    public get cells(): ReadonlyArray<ReadonlyArray<CellType>> {
+    public get cells(): ReadonlyArray<ReadonlyArray<CellValueType>> {
         return this._model.value.cells;
     }
 

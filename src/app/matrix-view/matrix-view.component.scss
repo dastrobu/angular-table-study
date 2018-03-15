@@ -83,7 +83,21 @@ div {
 .canvas-top {
     display: block;
     position: relative;
-    background-color: #fa00cc;
+}
+
+.canvas-right {
+    display: block;
+    position: relative;
+}
+
+.canvas-left {
+    display: block;
+    position: relative;
+}
+
+.canvas-bottom {
+    display: block;
+    position: relative;
 }
 
 .cell {

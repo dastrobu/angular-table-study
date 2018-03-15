@@ -49,3 +49,9 @@ export interface RowsCols<T> {
     readonly rows: T;
     readonly cols: T;
 }
+
+/** interface to refer to all objects, that need to be stored for rows and cols. */
+export interface RowCol<T> {
+    readonly row: T;
+    readonly col: T;
+}
