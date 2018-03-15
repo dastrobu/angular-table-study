@@ -15,7 +15,7 @@ export class AppComponent implements OnInit {
     };
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
 
-    rows = 50;
+    rows = 500;
     cols = 20;
 
     ngOnInit(): void {

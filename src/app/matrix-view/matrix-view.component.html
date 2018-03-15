@@ -9,9 +9,12 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
+            <!-- it seems that top and left performs better than translate3d -->
+            <!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
             <div class="cell"
                  *ngFor="let cell of viewModel.scrollableCells"
-                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.left]="cell.position.left + 'px'"
+                 [style.top]="cell.position.top + 'px'"
                  [style.height]="cell.size.height + 'px'"
                  [style.width]="cell.size.width + 'px'"
             >
@@ -36,7 +39,8 @@
         >
             <div class="cell"
                  *ngFor="let cell of viewModel.fixedTopCells"
-                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.left]="cell.position.left + 'px'"
+                 [style.top]="cell.position.top + 'px'"
                  [style.height]="cell.size.height + 'px'"
                  [style.width]="cell.size.width + 'px'"
             >
@@ -60,7 +64,8 @@
         >
             <div class="cell"
                  *ngFor="let cell of viewModel.fixedRightCells"
-                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.left]="cell.position.left + 'px'"
+                 [style.top]="cell.position.top + 'px'"
                  [style.height]="cell.size.height + 'px'"
                  [style.width]="cell.size.width + 'px'"
             >
@@ -84,7 +89,8 @@
         >
             <div class="cell"
                  *ngFor="let cell of viewModel.fixedBottomCells"
-                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.left]="cell.position.left + 'px'"
+                 [style.top]="cell.position.top + 'px'"
                  [style.height]="cell.size.height + 'px'"
                  [style.width]="cell.size.width + 'px'"
             >
@@ -104,7 +110,8 @@
         >
             <div class="cell"
                  *ngFor="let cell of viewModel.fixedLeftCells"
-                 [style.transform]="'translate3d(' + cell.position.left + 'px, ' + cell.position.top + 'px, 0)'"
+                 [style.left]="cell.position.left + 'px'"
+                 [style.top]="cell.position.top + 'px'"
                  [style.height]="cell.size.height + 'px'"
                  [style.width]="cell.size.width + 'px'"
             >
