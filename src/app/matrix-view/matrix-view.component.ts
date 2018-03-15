@@ -8,7 +8,9 @@ import {
     NgZone,
     OnDestroy,
     OnInit,
-    ViewChild
+    QueryList,
+    ViewChild,
+    ViewChildren
 } from '@angular/core';
 import {MatrixViewModel, Model} from './matrix-view-model';
 import {Config, MatrixViewConfig} from './matrix-view-config';
@@ -17,6 +19,7 @@ import {Observable} from 'rxjs/Observable';
 import {Subscription} from 'rxjs/Subscription';
 import {MatrixViewViewModel} from './matrix-view-view-model';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
+import {MatrixViewTileRendererComponent} from './matrix-view-tile-renderer/matrix-view-tile-renderer.component';
 
 @Component({
     // TODO DST: if we use onPush we must make sure, that the inputs are immutable... this is currently not the case.
@@ -72,6 +75,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     @ViewChild('fixedTopLeft')
     public fixedTopLeft: ElementRef;
+
+    // TODO DST: use row major convention to optimize lookup on component, instead of using find...
+    @ViewChildren(MatrixViewTileRendererComponent)
+    tileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>>;
 
     constructor(private changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
