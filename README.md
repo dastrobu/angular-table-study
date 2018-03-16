@@ -134,6 +134,17 @@ implementations.
    Wheel events on fixed positioned elements are handled different in Chrome and IE. This means, 
    the view cannot be scrolled via the wheel, when the mouse is positioned over the fixed areas in chrome.
    Custom event propagation may be implemented, but it is not clear, if this will cause any issues.
+   
+ * Stacking of fixed areas cannot be configured. If fixed corners are not shown, there are several 
+   options to determine which fixed area is shown on top of another area. In the future one could make
+   the configurable, currently, however, the order is fixed to be 
+   1. left
+   2. bottom
+   3. top
+   4. right (foreground)
+   If this is changed, one must take care of some corner cases. Especially, if the canvas is smaller 
+   than the viewport, fixed right must be in foreground. Otherwise, it will be difficult to render 
+   fixed top rows in the fixed right area correctly.
 
 ### Virtual DOM
 
@@ -185,9 +196,9 @@ observables, to keep track of changes. A detailed discussion can be found in the
  * Fixed areas do not work correctly, if the number for rows/cols is smaller or equal to the number of fixed cols/rows.
  * Wheel scrolling over fixed areas does not work in Chrome.
  
- ## Demos
+## Demos
  
- The following demos should be implemented as show cases.
+The following demos should be implemented as show cases.
   * zebra effect on rows
   * hover on columns and rows.
   * filtering
@@ -195,4 +206,8 @@ observables, to keep track of changes. A detailed discussion can be found in the
   * drag and drop on columns
   * matrix without horizontal scrolling
   * row and columns selection
+  
+## Challenges
+ * Big Viewports?
+ * Drag & Drop
   

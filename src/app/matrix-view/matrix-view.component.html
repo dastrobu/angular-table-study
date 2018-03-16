@@ -10,13 +10,13 @@
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
             <!-- TODO DST: it is not clear if the trackBy works with this JSON style index... needed at all here? since the number of tiles does not change, this must be investigated further -->
-            <matrix-view-tile-renderer
-                *ngFor="let tile of viewModel.scrollableTiles"
-                [tile]="tile"
-                [style.top]="tile.position.top + 'px'"
-                [style.left]="tile.position.left + 'px'"
-                [style.width]="tile.size.width + 'px'"
-                [style.height]="tile.size.height + 'px'"
+            <matrix-view-tile-renderer #scrollableTileRenderers
+                                       *ngFor="let tile of viewModel.scrollableTiles"
+                                       [tile]="tile"
+                                       [style.top]="tile.position.top + 'px'"
+                                       [style.left]="tile.position.left + 'px'"
+                                       [style.width]="tile.size.width + 'px'"
+                                       [style.height]="tile.size.height + 'px'"
             >
             </matrix-view-tile-renderer>
         </div>
@@ -24,52 +24,26 @@
 
     <!-- all fixed areas sit outside the container -->
     <!-- START: fixed areas -->
-    <div *ngIf="viewModel.showFixed.top"
-         #fixedTop class="fixed fixed-top"
-         [style.height]="viewModel.fixedTopHeight + 'px'"
+    <!-- The stacking order was chosen carefully because of some corner cases, see README.md for details. -->
+    <div *ngIf="viewModel.showFixed.left"
+         #fixedLeft class="fixed fixed-left"
+         [style.width]="viewModel.fixedLeftWidth  + 'px'"
     >
-        <!-- TODO DST: check if this is needed, if no scroll bar is there -->
-        <!-- one pixel is added to the canvas size, to account for rounding errors -->
-        <div #canvasTop class="canvas-top"
-             [style.width]="viewModel.canvasSize.width + 1 + 'px'"
-             [style.height]="viewModel.canvasSize.height + 'px'"
-             [style.min-width]="viewModel.viewportSize.width + 1 + 'px'"
-             [style.min-height]="viewModel.viewportSize.height + 'px'"
-        >
-            <div class="cell"
-                 *ngFor="let cell of viewModel.fixedTopCells"
-                 [style.left]="cell.position.left + 'px'"
-                 [style.top]="cell.position.top + 'px'"
-                 [style.height]="cell.size.height + 'px'"
-                 [style.width]="cell.size.width + 'px'"
-            >
-                {{cell.value}}
-            </div>
-        </div>
-    </div>
-    <div *ngIf="viewModel.showFixed.right"
-         #fixedRight class="fixed fixed-right"
-         [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, 0, 0)'"
-         [style.width]="viewModel.fixedRightWidth + 'px'"
-    >
-        <!-- TODO DST: check if this is needed, if no scroll bar is there -->
-        <!-- one pixel is added to the canvas size, to account for rounding errors -->
-        <div #canvasRight class="canvas-right"
+        <div #canvasLeft class="canvas-left"
              [style.width]="viewModel.canvasSize.width + 'px'"
              [style.height]="viewModel.canvasSize.height + 'px'"
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
-             [style.left]="(viewModel.fixedRightWidth - viewModel.canvasSize.width) + 'px'"
         >
-            <div class="cell"
-                 *ngFor="let cell of viewModel.fixedRightCells"
-                 [style.left]="cell.position.left + 'px'"
-                 [style.top]="cell.position.top + 'px'"
-                 [style.height]="cell.size.height + 'px'"
-                 [style.width]="cell.size.width + 'px'"
+            <matrix-view-tile-renderer #fixedLeftTileRenderers
+                                       *ngFor="let tile of viewModel.fixedLeftTiles"
+                                       [tile]="tile"
+                                       [style.top]="tile.position.top + 'px'"
+                                       [style.left]="tile.position.left + 'px'"
+                                       [style.width]="tile.size.width + 'px'"
+                                       [style.height]="tile.size.height + 'px'"
             >
-                {{cell.value}}
-            </div>
+            </matrix-view-tile-renderer>
         </div>
     </div>
     <div *ngIf="viewModel.showFixed.bottom"
@@ -86,36 +60,63 @@
              [style.min-height]="viewModel.viewportSize.height + 'px'"
              [style.top]="(viewModel.fixedBottomHeight - viewModel.canvasSize.height) + 'px'"
         >
-            <div class="cell"
-                 *ngFor="let cell of viewModel.fixedBottomCells"
-                 [style.left]="cell.position.left + 'px'"
-                 [style.top]="cell.position.top + 'px'"
-                 [style.height]="cell.size.height + 'px'"
-                 [style.width]="cell.size.width + 'px'"
+            <matrix-view-tile-renderer #fixedBottomTileRenderers
+                                       *ngFor="let tile of viewModel.fixedBottomTiles"
+                                       [tile]="tile"
+                                       [style.top]="tile.position.top + 'px'"
+                                       [style.left]="tile.position.left + 'px'"
+                                       [style.width]="tile.size.width + 'px'"
+                                       [style.height]="tile.size.height + 'px'"
             >
-                {{cell.value}}
-            </div>
+            </matrix-view-tile-renderer>
         </div>
     </div>
-    <div *ngIf="viewModel.showFixed.left"
-         #fixedLeft class="fixed fixed-left"
-         [style.width]="viewModel.fixedLeftWidth  + 'px'"
+    <div *ngIf="viewModel.showFixed.top"
+         #fixedTop class="fixed fixed-top"
+         [style.height]="viewModel.fixedTopHeight + 'px'"
     >
-        <div #canvasLeft class="canvas-left"
+        <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+        <!-- one pixel is added to the canvas size, to account for rounding errors -->
+        <div #canvasTop class="canvas-top"
              [style.width]="viewModel.canvasSize.width + 'px'"
              [style.height]="viewModel.canvasSize.height + 'px'"
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
-            <div class="cell"
-                 *ngFor="let cell of viewModel.fixedLeftCells"
-                 [style.left]="cell.position.left + 'px'"
-                 [style.top]="cell.position.top + 'px'"
-                 [style.height]="cell.size.height + 'px'"
-                 [style.width]="cell.size.width + 'px'"
+            <matrix-view-tile-renderer #fixedTopTileRenderers
+                                       *ngFor="let tile of viewModel.fixedTopTiles"
+                                       [tile]="tile"
+                                       [style.top]="tile.position.top + 'px'"
+                                       [style.left]="tile.position.left + 'px'"
+                                       [style.width]="tile.size.width + 'px'"
+                                       [style.height]="tile.size.height + 'px'"
             >
-                {{cell.value}}
-            </div>
+            </matrix-view-tile-renderer>
+        </div>
+    </div>
+    <div *ngIf="viewModel.showFixed.right"
+         #fixedRight class="fixed fixed-right"
+         [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, 0, 0)'"
+         [style.width]="viewModel.fixedRightWidth + 'px'"
+    >
+        <!-- TODO DST: check if this is needed, if no scroll bar is there -->
+        <!-- one pixel is added to the canvas size, to account for rounding errors -->
+        <div #canvasRight class="canvas-right"
+             [style.width]="viewModel.canvasSize.width + 'px'"
+             [style.height]="viewModel.canvasSize.height + 'px'"
+             [style.min-width]="viewModel.viewportSize.width + 'px'"
+             [style.min-height]="viewModel.viewportSize.height + 'px'"
+             [style.left]="(viewModel.fixedRightWidth - viewModel.canvasSize.width) + 'px'"
+        >
+            <matrix-view-tile-renderer #fixedRightTileRenderers
+                                       *ngFor="let tile of viewModel.fixedRightTiles"
+                                       [tile]="tile"
+                                       [style.top]="tile.position.top + 'px'"
+                                       [style.left]="tile.position.left + 'px'"
+                                       [style.width]="tile.size.width + 'px'"
+                                       [style.height]="tile.size.height + 'px'"
+            >
+            </matrix-view-tile-renderer>
         </div>
     </div>
     <div *ngIf="viewModel.showFixedCorners.topRight"

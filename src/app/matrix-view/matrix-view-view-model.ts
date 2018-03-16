@@ -7,7 +7,7 @@ import {Log} from './log';
 import {Observable} from 'rxjs/Observable';
 import {Subscription} from 'rxjs/Subscription';
 import {Config} from './matrix-view-config';
-import {BoxCorners, BoxSides, BoxSize, Point2D, RowCol} from './utils';
+import {BoxCorners, BoxSides, BoxSize, flatten, Point2D, RowCol} from './utils';
 import {isInternetExplorer, scrollbarWidth} from './browser';
 import {OnDestroy, OnInit} from '@angular/core';
 import {MatrixViewTileRendererComponent} from './matrix-view-tile-renderer/matrix-view-tile-renderer.component';
@@ -38,16 +38,84 @@ export interface Tile<CellValueType> {
  * Note: the view model must not be modified externally.
  */
 export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
-    private _scrollableTiles: Tile<CellValueType>[];
+    private _scrollableTiles: ReadonlyArray<Tile<CellValueType>> = [];
+
+    /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get scrollableTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tiles = this.createTiles(this.scrollableCells);
+        const flatTiles: ReadonlyArray<Tile<CellValueType>> = flatten(tiles);
+
+        const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+        const scrollPosition = {
+            left: containerNativeElement.scrollLeft,
+            top: containerNativeElement.scrollTop
+        };
+        const updatedTiles = this.updateTileVisibility(flatTiles, scrollPosition);
+        this.log.trace(() => `updated scrollableTiles: ${JSON.stringify(updatedTiles)}`);
+        this._scrollableTiles = flatTiles;
+        return flatTiles;
+    }
+
+    private _fixedTopTiles: ReadonlyArray<Tile<CellValueType>> = [];
+
+    /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get fixedTopTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tiles = this.createTiles(this.fixedTopCells);
+        const flatTiles: ReadonlyArray<Tile<CellValueType>> = flatten(tiles);
+
+        const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+        const scrollPosition = {
+            left: containerNativeElement.scrollLeft,
+            top: 0
+        };
+        const updatedTiles = this.updateTileVisibility(flatTiles, scrollPosition);
+        this.log.trace(() => `updated fixedTopTiles: ${JSON.stringify(updatedTiles)}`);
+        this._fixedTopTiles = flatTiles;
+        return flatTiles;
+    }
+
+    private _fixedBottomTiles: ReadonlyArray<Tile<CellValueType>> = [];
+
     private readonly log: Log = new Log(this.constructor.name + ':');
     private model: Model<CellValueType>;
     private config: Config;
-    private _tileSize: BoxSize = {width: 0, height: 0};
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
 
     /** scroll listener to synchronize scrolling on the main canvas and on the fixed areas. */
     private scrollListener: () => void;
+
+    /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get fixedBottomTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tiles = this.createTiles(this.fixedBottomCells);
+        const flatTiles: ReadonlyArray<Tile<CellValueType>> = flatten(tiles);
+
+        const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+
+        // take the cached sizes, instead of recomputing them.
+        const canvasSize = this._canvasSize;
+        const viewportSize = this._viewportSize;
+
+        const scrollPosition = {
+            left: containerNativeElement.scrollLeft,
+            top: canvasSize.height <= viewportSize.height ? 0 : canvasSize.height - viewportSize.height
+        };
+        const updatedTiles = this.updateTileVisibility(flatTiles, scrollPosition);
+        this.log.trace(() => `updated fixedBottomTiles: ${JSON.stringify(updatedTiles)}`);
+        this._fixedBottomTiles = flatTiles;
+        return flatTiles;
+    }
+
+    private _fixedLeftTiles: ReadonlyArray<Tile<CellValueType>> = [];
 
     constructor(private matrixViewComponent: MatrixViewComponent<CellValueType>,
                 configObservable: Observable<Config>,
@@ -180,6 +248,99 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     }
 
     /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get fixedLeftTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tiles = this.createTiles(this.fixedLeftCells);
+        const flatTiles: ReadonlyArray<Tile<CellValueType>> = flatten(tiles);
+
+        const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+        const scrollPosition = {
+            left: 0,
+            top: containerNativeElement.scrollTop,
+        };
+        const updatedTiles = this.updateTileVisibility(flatTiles, scrollPosition);
+        this.log.trace(() => `updated fixedLeftTiles: ${JSON.stringify(updatedTiles)}`);
+        this._fixedLeftTiles = flatTiles;
+        return flatTiles;
+    }
+
+    private _fixedRightTiles: ReadonlyArray<Tile<CellValueType>> = [];
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
+     */
+    public get showFixed(): BoxSides<number> {
+        return this.config.showFixed;
+    }
+
+    /**
+     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed corners.
+     */
+    public get showFixedCorners(): BoxCorners<boolean> {
+        return this.config.showFixedCorners;
+    }
+
+    /**
+     * tile array, to which cells will be assigned. Tiles will only be rendered,
+     * if they are visible in the viewport or close to them.
+     */
+    get fixedRightTiles(): ReadonlyArray<Tile<CellValueType>> {
+        const tiles = this.createTiles(this.fixedRightCells);
+        const flatTiles: ReadonlyArray<Tile<CellValueType>> = flatten(tiles);
+
+        const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+
+        // take the cached sizes, instead of recomputing them.
+        const canvasSize = this._canvasSize;
+        const viewportSize = this._viewportSize;
+        const scrollPosition = {
+            left: canvasSize.width <= viewportSize.width ? 0 : canvasSize.width - viewportSize.width,
+            top: containerNativeElement.scrollTop,
+        };
+        const updatedTiles = this.updateTileVisibility(flatTiles, scrollPosition);
+        this.log.trace(() => `updated fixedRightTiles: ${JSON.stringify(updatedTiles)}`);
+        this._fixedRightTiles = flatTiles;
+        return flatTiles;
+    }
+
+    private _canvasSize: BoxSize;
+
+
+    /** @return {number} rowHeight of a certain row in px */
+    public rowHeight(modelIndex: number): number {
+        const n = this.model.rowModel.rowHeight(modelIndex);
+        this.log.trace(() => `rowHeight(${modelIndex}) => ${n}`);
+        return n;
+    }
+
+    /** @return {number} colWidth of a certain col in px */
+    public colWidth(modelIndex: number): number {
+        const n = this.model.colModel.colWidths[modelIndex];
+        this.log.trace(() => `colWidth(${modelIndex}) => ${n}`);
+        return n;
+    }
+
+    /**
+     * Size of the canvas to draw to.
+     */
+    public get canvasSize(): BoxSize {
+        this.log.trace(() => `canvasSize`);
+        const model = this.model;
+        const width = model.colModel.width;
+        const height = model.rowModel.height;
+        // TODO DST: make viewportSize observable, instead of passing it directly
+        const canvasSize = {width: width, height: height};
+        this._canvasSize = canvasSize;
+        this.config.tileRenderStrategy.canvasSize = canvasSize;
+        this.log.trace(() => `canvasSize => ${JSON.stringify(canvasSize)}`);
+        return canvasSize;
+    }
+
+    private _viewportSize: BoxSize;
+
+    /**
      * size of the viewport, i.e. the size of the container minus scrollbars, if any.
      */
     public get viewportSize(): BoxSize {
@@ -197,108 +358,55 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             height = containerSize.height - scrollbarWidth;
         }
         const viewportSize = {width: width, height: height};
-        // TODO DST: make viewportSize observable, instead of passing it directly
+        // TODO DST: make viewportSize observable, instead of passing it directly (same for canvas size)
+        this._viewportSize = viewportSize;
         this.config.tileRenderStrategy.viewportSize = viewportSize;
         this.log.trace(() => `viewportSize => ${JSON.stringify(viewportSize)}`);
         return viewportSize;
     }
 
-    /**
-     * Size of the canvas to draw to.
-     */
-    public get canvasSize(): BoxSize {
-        this.log.trace(() => `canvasSize`);
-        const model = this.model;
-        const width = model.colModel.width;
-        const height = model.rowModel.height;
-        // TODO DST: make viewportSize observable, instead of passing it directly
-        const canvasSize = {width: width, height: height};
-        this.config.tileRenderStrategy.canvasSize = canvasSize;
-        this.log.trace(() => `canvasSize => ${JSON.stringify(canvasSize)}`);
-        return canvasSize;
-    }
-
-    get tileSize(): BoxSize {
-        return this._tileSize;
-    }
-
-    /**
-     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed areas.
-     */
-    public get showFixed(): BoxSides<number> {
-        return this.config.showFixed;
-    }
-
-    /**
-     * @return {BoxSides<number>} information from the configuration of the table about displaying fixed corners.
-     */
-    public get showFixedCorners(): BoxCorners<boolean> {
-        return this.config.showFixedCorners;
-    }
-
-    /** @return {number} position of a certain row in px */
-    public rowPosition(modelIndex: number): number {
-        const n = this.model.rowModel.rowPositions[modelIndex];
-        this.log.trace(() => `rowPosition(${modelIndex}) => ${n}`);
-        return n;
-    }
-
-    /** @return {number} position of a certain col in px */
-    public colPosition(modelIndex: number): number {
-        const n = this.model.colModel.colPositions[modelIndex];
-        this.log.trace(() => `colPosition(${modelIndex}) => ${n}`);
-        return n;
-    }
-
-
-    /** @return {number} rowHeight of a certain row in px */
-    public rowHeight(modelIndex: number): number {
-        const n = this.model.rowModel.rowHeight(modelIndex);
-        this.log.trace(() => `rowHeight(${modelIndex}) => ${n}`);
-        return n;
-    }
-
-    /** @return {number} colWidth of a certain col in px */
-    public colWidth(modelIndex: number): number {
-        const n = this.model.colModel.colWidths[modelIndex];
-        this.log.trace(() => `colWidth(${modelIndex}) => ${n}`);
-        return n;
-    }
-
     /** @return {number} number of cols fixed left */
     get fixedLeft(): number {
-        const n = Math.min(this.config.showFixed.left, this.model.size.cols);
+        const n = Math.min(this.config.showFixed.left, this.model.dimension.cols);
         this.log.trace(() => `fixedLeft => ${n}`);
         return n;
     }
 
     /** @return {number} number of cols fixed right */
     get fixedRight(): number {
-        return Math.min(this.config.showFixed.right, this.model.size.cols);
+        const n = Math.min(this.config.showFixed.right, this.model.dimension.cols);
+        this.log.trace(() => `fixedRight => ${n}`);
+        return n;
     }
 
     /** @return {number} number of rows fixed at top */
     get fixedTop(): number {
-        return Math.min(this.config.showFixed.top, this.model.size.rows);
+        const n = Math.min(this.config.showFixed.top, this.model.dimension.rows);
+        this.log.trace(() => `fixedTop => ${n}`);
+        return n;
     }
 
     /** @return {number} number of rows fixed at bottom */
     get fixedBottom(): number {
-        return Math.min(this.config.showFixed.bottom, this.model.size.rows);
+        const n = Math.min(this.config.showFixed.bottom, this.model.dimension.rows);
+        this.log.trace(() => `fixedBottom => ${n}`);
+        return n;
     }
 
     get scrollableCells(): ReadonlyArray<Cell<CellValueType>> {
-        const size = this.model.size;
+        const dim = this.model.dimension;
         const fixedTop = this.fixedTop;
         const fixedBottom = this.fixedBottom;
         const fixedLeft = this.fixedLeft;
         const fixedRight = this.fixedRight;
         const scrollableCells = [];
-        // TODO DST: handle special case, where size.rows <= fixedBottom (for all fixed areas)
+        // TODO DST: handle special case, where dimension.rows <= fixedBottom (for all fixed areas)
         this.model.cells
-            .slice(this.fixedTop, size.rows - fixedBottom)
+        // filter all rows, that belong to fixed top or bottom
+            .slice(fixedTop, dim.rows - fixedBottom)
             .forEach((row, rowIndex) => {
-                row.slice(fixedLeft, size.cols - fixedRight)
+                // filter all cols, that belong to fixed left or right
+                row.slice(fixedLeft, dim.cols - fixedRight)
                     .forEach((cell, collIndex) => {
                         const i = rowIndex + fixedTop;
                         const j = collIndex + fixedLeft;
@@ -316,13 +424,18 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     }
 
     get fixedLeftCells(): ReadonlyArray<Cell<CellValueType>> {
+        const dim = this.model.dimension;
+        const fixedBottom = this.fixedBottom;
         const fixedLeft = this.fixedLeft;
         const fixedLeftCells = [];
+        const fixedTop = this.fixedTop;
         this.model.cells
+        // fixed left is lowest, so filter all rows, that belong to fixed top or bottom
+            .slice(fixedTop, dim.rows - fixedBottom)
             .forEach((row, rowIndex) => {
                 row.slice(0, fixedLeft)
                     .forEach((cell, collIndex) => {
-                        const i = rowIndex;
+                        const i = rowIndex + fixedTop;
                         const j = collIndex;
                         fixedLeftCells.push({
                             modelIndex: {row: i, col: j},
@@ -337,12 +450,24 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         return fixedLeftCells;
     }
 
+    ngOnDestroy(): void {
+        this.log.debug(() => `ngOnDestroy()`);
+        // clean up the scroll listener
+        if (this.scrollListener) {
+            this.matrixViewComponent.container.nativeElement.removeEventListener('scroll', this.scrollListener);
+        }
+        if (this.subscriptions) {
+            this.subscriptions.forEach(subscription => subscription.unsubscribe());
+        }
+    }
+
     get fixedRightCells(): ReadonlyArray<Cell<CellValueType>> {
-        const size = this.model.size;
+        const dim = this.model.dimension;
         const fixedRight = this.fixedRight;
         const fixedRightCells = [];
-        const offset = size.cols - fixedRight;
+        const offset = dim.cols - fixedRight;
         this.model.cells
+        // since fixed right is on top, no rows are filtered
             .forEach((row, rowIndex) => {
                 row.slice(offset)
                     .forEach((cell, collIndex) => {
@@ -362,68 +487,155 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     }
 
     get fixedTopCells(): ReadonlyArray<Cell<CellValueType>> {
-        const size = this.model.size;
+        const dim = this.model.dimension;
+        const fixedRight = this.fixedRight;
         const fixedTop = this.fixedTop;
         const fixedTopCells = [];
         this.model.cells
-            .slice(0, size.rows - fixedTop)
+            .slice(0, fixedTop)
             .forEach((row, rowIndex) => {
-                row.forEach((cell, collIndex) => {
-                    const i = rowIndex;
-                    const j = collIndex;
-                    fixedTopCells.push({
-                        modelIndex: {row: i, col: j},
-                        viewIndex: {row: i, col: j},
-                        value: cell,
-                        position: {top: this.rowPosition(i), left: this.colPosition(j)},
-                        size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                // filter all cols that belong to fixed right, since fixed right is on top
+                row.slice(0, dim.cols - fixedRight)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex;
+                        const j = collIndex;
+                        fixedTopCells.push({
+                            modelIndex: {row: i, col: j},
+                            viewIndex: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
                     });
-                });
             });
         this.log.trace(() => `fixedTopCells => ${JSON.stringify(fixedTopCells)}`);
         return fixedTopCells;
     }
 
     get fixedBottomCells(): ReadonlyArray<Cell<CellValueType>> {
-        const size = this.model.size;
+        const dim = this.model.dimension;
         const fixedBottom = this.fixedBottom;
+        const fixedRight = this.fixedRight;
         const fixedBottomCells = [];
-        const offset = size.rows - fixedBottom;
+        const offset = dim.rows - fixedBottom;
         this.model.cells
             .slice(offset)
             .forEach((row, rowIndex) => {
-                row.forEach((cell, collIndex) => {
-                    const i = rowIndex + offset;
-                    const j = collIndex;
-                    fixedBottomCells.push({
-                        modelIndex: {row: i, col: j},
-                        viewIndex: {row: i, col: j},
-                        value: cell,
-                        position: {top: this.rowPosition(i), left: this.colPosition(j)},
-                        size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                // fixed bottom is above fixed left, so filter all cols, that belong to fixed right
+                row.slice(0, dim.cols - fixedRight)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex + offset;
+                        const j = collIndex;
+                        fixedBottomCells.push({
+                            modelIndex: {row: i, col: j},
+                            viewIndex: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
                     });
-                });
             });
         this.log.trace(() => `fixedBottomCells => ${JSON.stringify(fixedBottomCells)}`);
         return fixedBottomCells;
     }
 
-    ngOnDestroy(): void {
-        this.log.debug(() => `ngOnDestroy()`);
-        // clean up the scroll listener
-        if (this.scrollListener) {
-            this.matrixViewComponent.container.nativeElement.removeEventListener('scroll', this.scrollListener);
+    /** @return {number} position of a certain row in px */
+    public rowPosition(modelIndex: number): number {
+        const n = this.model.rowModel.rowPositions[modelIndex];
+        this.log.trace(() => `rowPosition(${modelIndex}) => ${n}`);
+        if (!Number.isFinite(n)) {
+            throw new Error(`bad rowPosition for modelIndex: ${modelIndex}`);
         }
-        if (this.subscriptions) {
-            this.subscriptions.forEach(subscription => subscription.unsubscribe());
-        }
+        return n;
     }
 
-    /**
-     * tile array, to which cells will be assigned. Tiles will only be rendered,
-     * if they are visible in the viewport or close to them.
-     */
-    get scrollableTiles(): ReadonlyArray<Tile<CellValueType>> {
+    /** @return {number} position of a certain col in px */
+    public colPosition(modelIndex: number): number {
+        const n = this.model.colModel.colPositions[modelIndex];
+        this.log.trace(() => `colPosition(${modelIndex}) => ${n}`);
+        if (!Number.isFinite(n)) {
+            throw new Error(`bad rowPosition for modelIndex: ${modelIndex}`);
+        }
+        return n;
+    }
+
+    ngOnInit(): void {
+        this.log.debug(() => `ngOnInit()`);
+        const matrixViewComponent = this.matrixViewComponent;
+        // to optimize performance, the scroll sync runs outside angular.
+        // so one should be careful, what to do here, since there is not change detection running.
+        matrixViewComponent.zone.runOutsideAngular(() => {
+            const containerNativeElement = this.matrixViewComponent.container.nativeElement;
+            this.scrollListener = () => {
+                const scrollLeft = containerNativeElement.scrollLeft;
+                const scrollTop = containerNativeElement.scrollTop;
+                const scrollLeftOffsetPx = -scrollLeft + 'px';
+                const scrollTopOffsetPx = -scrollTop + 'px';
+                // to synchronize scroll there are several options.
+                // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
+                //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
+                //    performance.
+                // 2. use scrollTo(scrollLeft, 0)
+                //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
+                // 3. use left = -scrollLeft px
+                //    This works in all Browsers and scrolling performance is the best one of all three options.
+                //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
+
+                const canvasTop = matrixViewComponent.canvasTop;
+
+                // use the cached values here, they should not change after the model (or config) was updated.
+                const canvasSize = this._canvasSize;
+                const viewportSize = this._viewportSize;
+                if (canvasTop) {
+                    canvasTop.nativeElement.style.left = scrollLeftOffsetPx;
+                    this.updateTileVisibility(this._fixedTopTiles,
+                        {left: scrollLeft, top: 0})
+                        .filter(tile => tile.renderer)
+                        .forEach(tile => tile.renderer.detectChanges());
+
+                }
+                const canvasBottom = matrixViewComponent.canvasBottom;
+                if (canvasBottom) {
+                    canvasBottom.nativeElement.style.left = scrollLeftOffsetPx;
+                    this.updateTileVisibility(this._fixedBottomTiles,
+                        {
+                            left: scrollLeft,
+                            top: canvasSize.height <= viewportSize.height ? 0 : canvasSize.height - viewportSize.height
+                        })
+                        .filter(tile => tile.renderer)
+                        .forEach(tile => tile.renderer.detectChanges());
+                }
+                const canvasLeft = matrixViewComponent.canvasLeft;
+                if (canvasLeft) {
+                    canvasLeft.nativeElement.style.top = scrollTopOffsetPx;
+                    this.updateTileVisibility(this._fixedLeftTiles,
+                        {left: 0, top: scrollTop})
+                        .filter(tile => tile.renderer)
+                        .forEach(tile => tile.renderer.detectChanges());
+                }
+                const canvasRight = matrixViewComponent.canvasRight;
+                if (canvasRight) {
+                    canvasRight.nativeElement.style.top = scrollTopOffsetPx;
+                    this.updateTileVisibility(this._fixedRightTiles,
+                        {
+                            left: canvasSize.width <= viewportSize.width ? 0 : canvasSize.width - viewportSize.width,
+                            top: scrollTop,
+                        })
+                        .filter(tile => tile.renderer)
+                        .forEach(tile => tile.renderer.detectChanges());
+                }
+                // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
+                // too expensive.
+                this.updateTileVisibility(this._scrollableTiles,
+                    {left: scrollLeft, top: scrollTop})
+                    .filter(tile => tile.renderer)
+                    .forEach(tile => tile.renderer.detectChanges());
+            };
+            this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
+        });
+    }
+
+    private createTiles(cells: ReadonlyArray<Cell<CellValueType>>): ReadonlyArray<ReadonlyArray<Tile<CellValueType>>> {
         const tileSize = this.config.tileSize;
         const tileWidth = tileSize.width;
         const tileHeight = tileSize.height;
@@ -436,15 +648,9 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         const m = Math.ceil(canvasHeight / tileHeight);
         const n = Math.ceil(canvasWidth / tileWidth);
 
-        // store number of tiles
-        this._tileSize = {width: n, height: m};
-
-        // all tiles as flat array (row major order)
-        const flatTiles: Tile<CellValueType>[] = [];
-
         // tiles as 2d array
         const tiles: Tile<CellValueType>[][] = [];
-        for (let i = 0; i < m; i++) {
+        for (let i = 0; i < m; ++i) {
             const tileRow: Tile<CellValueType>[] = [];
             for (let j = 0; j < n; j++) {
                 const top = tileSize.height * i;
@@ -470,13 +676,12 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                     visible: undefined,
                 };
                 tileRow.push(tile);
-                flatTiles.push(tile);
             }
             tiles.push(tileRow);
         }
 
         // iterate all cells and assign them to the tiles.
-        this.scrollableCells.forEach(cell => {
+        cells.forEach(cell => {
             const positionLeft = cell.position.left;
             const positionTop = cell.position.top;
 
@@ -484,60 +689,10 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             // TODO DST: handle cells correctly, that overlap two or more tiles. Currently we simply assign to left tile.
             const i = Math.floor(positionTop / tileHeight);
             const j = Math.floor(positionLeft / tileWidth);
-
             tiles[i][j].cells.push(cell);
         });
-
-        const updatedTiles = this.updateTileVisibility(flatTiles);
-        this.log.trace(() => `updatedTiles: ${JSON.stringify(updatedTiles)}`);
-        this._scrollableTiles = flatTiles;
-        return flatTiles;
-    }
-
-    ngOnInit(): void {
-        this.log.debug(() => `ngOnInit()`);
-        const matrixViewComponent = this.matrixViewComponent;
-        // to optimize performance, the scroll sync runs outside angular.
-        // so one should be careful, what to do here, since there is not change detection running.
-        matrixViewComponent.zone.runOutsideAngular(() => {
-            const containerNativeElement = this.matrixViewComponent.container.nativeElement;
-            this.scrollListener = () => {
-                const scrollLeftPx = -containerNativeElement.scrollLeft + 'px';
-                const scrollTopPx = -containerNativeElement.scrollTop + 'px';
-                // to synchronize scroll there are several options.
-                // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
-                //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
-                //    performance.
-                // 2. use scrollTo(scrollLeft, 0)
-                //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
-                // 3. use left = -scrollLeft px
-                //    This works in all Browsers and scrolling performance is the best one of all three options.
-                //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
-
-                const canvasTop = matrixViewComponent.canvasTop;
-                if (canvasTop) {
-                    canvasTop.nativeElement.style.left = scrollLeftPx;
-                }
-                const canvasBottom = matrixViewComponent.canvasBottom;
-                if (canvasBottom) {
-                    canvasBottom.nativeElement.style.left = scrollLeftPx;
-                }
-                const canvasLeft = matrixViewComponent.canvasLeft;
-                if (canvasLeft) {
-                    canvasLeft.nativeElement.style.top = scrollTopPx;
-                }
-                const canvasRight = matrixViewComponent.canvasRight;
-                if (canvasRight) {
-                    canvasRight.nativeElement.style.top = scrollTopPx;
-                }
-                // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
-                // too expensive.
-                this.updateTileVisibility(this._scrollableTiles)
-                    .filter(tile => tile.renderer)
-                    .forEach(tile => tile.renderer.detectChanges());
-            };
-            this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
-        });
+        // remove all tiles, that do not have any cells
+        return tiles.map(row => row.filter(tile => tile.cells.length > 0)).filter(row => row.length > 0);
     }
 
     /**
@@ -546,28 +701,23 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
      * Note, this method does not have any side effects. The state of <pre>this</pre> is kept unchanged.
      *
      * @param {ReadonlyArray} tiles tiles to update {@link Tile#visible visible} on.
-     * @return {ReadonlyArray} array of tiles, where the {@link Tile#visible visible} property was updated.
+     * @param scrollPosition scroll position of the viewport.
+     * @return {Tile[]} array of tiles, where the {@link Tile#visible visible} property was updated.
      */
-    private updateTileVisibility(tiles: ReadonlyArray<Tile<CellValueType>>): ReadonlyArray<Tile<CellValueType>> {
-        this.log.trace(() => `updateTileVisibility(${JSON.stringify(tiles)})`);
-        const matrixViewComponent = this.matrixViewComponent;
-        const container = matrixViewComponent.container;
+    private updateTileVisibility(tiles: ReadonlyArray<Tile<CellValueType>>,
+                                 scrollPosition: Point2D): ReadonlyArray<Tile<CellValueType>> {
+        this.log.trace(() => `updateTileVisibility(${JSON.stringify(tiles.map(tile => tile.viewIndex))})`);
+        const container = this.matrixViewComponent.container;
         if (!container) {
             this.log.debug(() => `no container set, ignoring tile visibility update`);
             return;
         }
-        const containerNativeElement = container.nativeElement;
-        // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
 
-        // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
-        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles({
-            left: containerNativeElement.scrollLeft,
-            top: containerNativeElement.scrollTop
-        });
+        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles(scrollPosition);
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
 
         // map to row major flat indices
-        const n = this.tileSize.width;
+        const n = this.canvasSize.width / this.config.tileSize.width;
         const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(viewIndex => {
             return viewIndex.row * n + viewIndex.col;
         });
@@ -575,6 +725,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
         const updatedTiles: Tile<CellValueType>[] = [];
         tiles.forEach(tile => {
+            // TODO DST: lookup could be improved
             if (visibleTileRowMajorIndices.indexOf(tile.rowMajorIndex) === -1) {
                 // tile should not be visible, check if it is currently visible
                 // do check for false here explicitly, because initially visibility may be undefined.
@@ -593,7 +744,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                 }
             }
         });
-        // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
         return updatedTiles;
     }
 }

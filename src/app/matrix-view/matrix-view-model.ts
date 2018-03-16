@@ -1,7 +1,7 @@
 /**
  * default values
  */
-import {RowsCols} from './utils';
+import {dimensionOf, RowsCols} from './utils';
 import {defaults} from './matrix-view-config';
 
 /**
@@ -48,7 +48,7 @@ export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
         // make a copy of the arrays, to avoid external changes
         if (matrixViewModel) {
             this._cells = matrixViewModel.cells.map((row: CellValueType[]) => [...row]);
-            const size = this.size;
+            const size = this.dimension;
             this.colModel = new ColModel<CellValueType>(matrixViewModel.colModel, size.cols);
             this.rowModel = new RowModel<CellValueType>(matrixViewModel.rowModel, size.rows);
         }
@@ -61,16 +61,8 @@ export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
         return this._cells;
     }
 
-    get size(): RowsCols<number> {
-        // take length of first row, if any
-        let n = 0;
-        let m = 0;
-        const cells = this._cells;
-        if (cells.length > 0) {
-            n = cells.length;
-            m = cells[0].length;
-        }
-        return {rows: n, cols: m};
+    get dimension(): RowsCols<number> {
+        return dimensionOf(this._cells);
     }
 }
 
@@ -114,7 +106,7 @@ export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType
         } else if (typeof value === 'function') {
             const size = this.size;
             this._colWidths = Array(size);
-            for (let i = 0; i < size; i++) {
+            for (let i = 0; i < size; ++i) {
                 this._colWidths[i] = value(i);
             }
         } else {
@@ -179,7 +171,7 @@ export class RowModel<CellValueType> implements MatrixViewRowModel<CellValueType
         } else if (typeof value === 'function') {
             const size = this.size;
             this._rowHeights = Array(size);
-            for (let i = 0; i < size; i++) {
+            for (let i = 0; i < size; ++i) {
                 this._rowHeights[i] = value(i);
             }
         } else {

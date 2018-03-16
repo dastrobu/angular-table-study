@@ -55,3 +55,40 @@ export interface RowCol<T> {
     readonly row: T;
     readonly col: T;
 }
+
+/**
+ * Note: all inner arrays must have the same length!
+ *
+ * @param array2d the array to compute the dimension for, i.e. number of rows and cols.
+ * @return {{rows: number, cols: number}} dimension of a 2d array */
+export function dimensionOf(array2d: ReadonlyArray<ReadonlyArray<any>>): RowsCols<number> {
+    // take length of first row, if any
+    if (array2d.length > 0) {
+        return {rows: array2d.length, cols: array2d[0].length};
+    }
+    return {rows: 0, cols: 0};
+}
+
+/**
+ * Flatten a 2d array.
+ * Note: all inner arrays must have the same length!
+ * @param array2d a 2D array to flatten.
+ * @return {{rows: number, cols: number}} flattened (row major order) array
+ */
+export function flatten<T>(array2d: ReadonlyArray<ReadonlyArray<T>>): ReadonlyArray<T> {
+    if (array2d.length === 0) {
+        return [];
+    }
+    const dim = dimensionOf(array2d);
+    // reserve memory ot once
+    const flatArray = new Array(dim.rows * dim.cols);
+    // copy in loop... currently it is not quite clear what the most efficient way of flattening an array is.
+    for (let i = 0; i < dim.rows; ++i) {
+        const row = array2d[i];
+        const k = dim.cols * i;
+        for (let j = 0; j < dim.cols; ++j) {
+            flatArray[j + k] = row[j];
+        }
+    }
+    return flatArray;
+}

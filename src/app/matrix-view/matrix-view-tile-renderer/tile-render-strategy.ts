@@ -58,7 +58,7 @@ export class DefaultTileRenderStrategy implements TileRenderStrategy {
         const tiles = [];
         // TODO: implement prefetching of tiles
         // TODO: rethink if there is a corner case, where one must use i <= instead of <
-        for (let i = top; i < bottom; i++) {
+        for (let i = top; i < bottom; ++i) {
             for (let j = left; j < right; j++) {
                 tiles.push({row: i, col: j});
             }

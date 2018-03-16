@@ -76,9 +76,25 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     @ViewChild('fixedTopLeft')
     public fixedTopLeft: ElementRef;
 
-    // TODO DST: use row major convention to optimize lookup on component, instead of using find...
-    @ViewChildren(MatrixViewTileRendererComponent)
-    tileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> = new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
+    @ViewChildren('scrollableTileRenderers')
+    scrollableTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
+        new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
+
+    @ViewChildren('fixedTopTileRenderers')
+    fixedTopTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
+        new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
+
+    @ViewChildren('fixedBottomTileRenderers')
+    fixedBottomTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
+        new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
+
+    @ViewChildren('fixedRightTileRenderers')
+    fixedRightTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
+        new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
+
+    @ViewChildren('fixedLeftTileRenderers')
+    fixedLeftTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
+        new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
 
     constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
@@ -122,7 +138,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             }
             // call copy constructor, to address mutability
             this._model.next(new Model<CellValueType>(model));
-            this.log.debug(() => `initialized new model with size: ${JSON.stringify(this._model.value.size)})`);
+            this.log.debug(() => `initialized new model with size: ${JSON.stringify(this._model.value.dimension)})`);
             this.log.trace(() => `colModel.size: ${this._model.value.colModel.size}`);
             this.log.trace(() => `colWidths: ${this._model.value.colModel.colWidths}`);
             this.log.trace(() => `colPositions: ${this._model.value.colModel.colPositions}`);
@@ -182,12 +198,13 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
         const fixedTop = this.fixedTop;
         if (fixedTop) {
-            fixedTop.nativeElement.style.width = Math.ceil(viewportSize.width) + 'px';
-            console.log('fixedTop: ' + JSON.stringify(fixedTop.nativeElement.style.width));
+            // who knows where this off by one comes from? I don't....
+            fixedTop.nativeElement.style.width = Math.ceil(viewportSize.width + 1) + 'px';
         }
         const fixedBottom = this.fixedBottom;
         if (fixedBottom) {
-            fixedBottom.nativeElement.style.width = Math.ceil(viewportSize.width) + 'px';
+            // who knows where this off by one comes from? I don't....
+            fixedBottom.nativeElement.style.width = Math.ceil(viewportSize.width + 1) + 'px';
         }
         const fixedLeft = this.fixedLeft;
         if (fixedLeft) {
