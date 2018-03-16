@@ -43,8 +43,12 @@
         <td></td>
         <td><input title="ok" type="button" value="OK" (click)="ok()"></td>
     </tr>
+    <tr>
+        <td><label>tile size</label></td>
+        <td><input title="tile size" type="text" [formControl]="tileSizeFormControl" size="3"></td>
+    </tr>
 </table>
 <matrix-view
     [config]="configSubject"
     [model]="modelSubject"
-    style="width: 500px; height: 500px; margin-left: auto; margin-right: auto; margin-top: 20px; display: block"></matrix-view>
+    style="width: 500px; height: 300px; margin-left: auto; margin-right: auto; margin-top: 20px; display: block"></matrix-view>

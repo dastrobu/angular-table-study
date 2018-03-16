@@ -68,8 +68,10 @@ export class Config implements MatrixViewConfig {
             return;
         }
 
+        // log level must be updated first, so that logging works correctly
         if (config.logLevel !== undefined && config.logLevel !== null) {
             this.logLevel = config.logLevel;
+            this.log.level = this.logLevel;
             this.log.info(() => `did set logLevel: ${this.logLevel}`);
         }
 

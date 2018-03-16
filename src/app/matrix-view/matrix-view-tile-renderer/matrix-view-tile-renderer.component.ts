@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {Tile} from '../matrix-view-view-model';
 
 @Component({
@@ -7,18 +7,23 @@ import {Tile} from '../matrix-view-view-model';
     templateUrl: './matrix-view-tile-renderer.component.html',
     styleUrls: ['./matrix-view-tile-renderer.component.scss']
 })
-export class MatrixViewTileRendererComponent<CellValueType> implements OnInit {
-
+export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, OnDestroy {
     @Input()
     public tile: Tile<CellValueType>;
 
-    @Input()
-    public visible: boolean;
+    constructor(private changeDetectionRef: ChangeDetectorRef) {
+    }
 
-    constructor(public changeDetectionRef: ChangeDetectorRef) {
+    public detectChanges() {
+        this.changeDetectionRef.detectChanges();
     }
 
     ngOnInit() {
+        this.tile.renderer = this;
+    }
+
+    ngOnDestroy(): void {
+        this.tile.renderer = undefined;
     }
 
 }

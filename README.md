@@ -31,10 +31,18 @@ A fixed or sticky header and fixed columns are supported.
 The idea is that the matrix features several areas that are fixed, to be used as headers 
 and footers or for fixed columns. 
 
-fixed-top-left | fixed-top | fixed-top-right
--------------- | ----------| ---------------
-fixed-left     | canvas    | fixed-right
-fixed-bottom-left | fixed-bottom | fixed-bottom-right
+<!-- HTML table (not markdown) for proper formatting -->
+<table>
+<tr>
+<td>fixed-top-left</td> <td>fixed-top</td> <td>fixed-top-right</td>
+</tr>
+<tr>
+<td>fixed-left</td> <td>canvas</td> <td>fixed-right</td>
+</tr>
+<tr>
+<td>fixed-bottom-left</td> <td>fixed-bottom</td> <td>fixed-bottom-right</td>
+</tr>
+</table>
 
 The corners are only shown, if tow adjacent fixed areas are shown but can also be configured in
 detail. 
@@ -176,3 +184,15 @@ observables, to keep track of changes. A detailed discussion can be found in the
 
  * Fixed areas do not work correctly, if the number for rows/cols is smaller or equal to the number of fixed cols/rows.
  * Wheel scrolling over fixed areas does not work in Chrome.
+ 
+ ## Demos
+ 
+ The following demos should be implemented as show cases.
+  * zebra effect on rows
+  * hover on columns and rows.
+  * filtering
+  * sorting
+  * drag and drop on columns
+  * matrix without horizontal scrolling
+  * row and columns selection
+  

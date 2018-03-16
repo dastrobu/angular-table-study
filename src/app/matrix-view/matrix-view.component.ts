@@ -78,9 +78,9 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     // TODO DST: use row major convention to optimize lookup on component, instead of using find...
     @ViewChildren(MatrixViewTileRendererComponent)
-    tileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>>;
+    tileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> = new QueryList<MatrixViewTileRendererComponent<CellValueType>>();
 
-    constructor(private changeDetectorRef: ChangeDetectorRef,
+    constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
         // observe config changes
         this.subscriptions.push(this._config.subscribe(config => {

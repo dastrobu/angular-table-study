@@ -10,6 +10,7 @@ import {Config} from './matrix-view-config';
 import {BoxCorners, BoxSides, BoxSize, Point2D, RowCol} from './utils';
 import {isInternetExplorer, scrollbarWidth} from './browser';
 import {OnDestroy, OnInit} from '@angular/core';
+import {MatrixViewTileRendererComponent} from './matrix-view-tile-renderer/matrix-view-tile-renderer.component';
 
 /** cell representation */
 export interface Cell<CellValueType> {
@@ -27,6 +28,8 @@ export interface Tile<CellValueType> {
     readonly size: BoxSize;
     readonly cells: Cell<CellValueType>[];
     readonly rowMajorIndex: number;
+    visible: boolean;
+    renderer?: MatrixViewTileRendererComponent<CellValueType>;
 }
 
 
@@ -35,6 +38,7 @@ export interface Tile<CellValueType> {
  * Note: the view model must not be modified externally.
  */
 export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
+    private _scrollableTiles: Tile<CellValueType>[];
     private readonly log: Log = new Log(this.constructor.name + ':');
     private model: Model<CellValueType>;
     private config: Config;
@@ -426,19 +430,23 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
         const canvasSize = this.canvasSize;
         const canvasHeight = canvasSize.height;
-        const n = Math.ceil(canvasHeight / tileHeight);
         const canvasWidth = canvasSize.width;
-        const m = Math.ceil(canvasWidth / tileWidth);
-        // store number of tiles
-        this._tileSize = {width: m, height: n};
 
+        // there are m ✕ n tiles (m rows and n cols)
+        const m = Math.ceil(canvasHeight / tileHeight);
+        const n = Math.ceil(canvasWidth / tileWidth);
+
+        // store number of tiles
+        this._tileSize = {width: n, height: m};
+
+        // all tiles as flat array (row major order)
         const flatTiles: Tile<CellValueType>[] = [];
 
-        // tiles in row major order
+        // tiles as 2d array
         const tiles: Tile<CellValueType>[][] = [];
-        for (let i = 0; i < n; i++) {
+        for (let i = 0; i < m; i++) {
             const tileRow: Tile<CellValueType>[] = [];
-            for (let j = 0; j < m; j++) {
+            for (let j = 0; j < n; j++) {
                 const top = tileSize.height * i;
                 const left = tileWidth * j;
                 let height = tileHeight;
@@ -456,9 +464,10 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                     viewIndex: {row: i, col: j},
                     position: {top: top, left: left},
                     // compute the row major flat index for lookup and comparison
-                    rowMajorIndex: left + top * m,
+                    rowMajorIndex: j + i * n,
                     size: {width: width, height: height},
-                    cells: []
+                    cells: [],
+                    visible: undefined,
                 };
                 tileRow.push(tile);
                 flatTiles.push(tile);
@@ -466,18 +475,22 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             tiles.push(tileRow);
         }
 
+        // iterate all cells and assign them to the tiles.
         this.scrollableCells.forEach(cell => {
-            const left = cell.position.left;
-            const top = cell.position.top;
+            const positionLeft = cell.position.left;
+            const positionTop = cell.position.top;
 
             // compute tile in which the cell should be located
             // TODO DST: handle cells correctly, that overlap two or more tiles. Currently we simply assign to left tile.
-            const i = Math.floor(top / tileHeight);
-            const j = Math.floor(left / tileWidth);
+            const i = Math.floor(positionTop / tileHeight);
+            const j = Math.floor(positionLeft / tileWidth);
 
             tiles[i][j].cells.push(cell);
         });
 
+        const updatedTiles = this.updateTileVisibility(flatTiles);
+        this.log.trace(() => `updatedTiles: ${JSON.stringify(updatedTiles)}`);
+        this._scrollableTiles = flatTiles;
         return flatTiles;
     }
 
@@ -517,37 +530,71 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                 if (canvasRight) {
                     canvasRight.nativeElement.style.top = scrollTopPx;
                 }
-
-                // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
-
-                // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
-                const n = this.tileSize.width;
-                const visibleTiles: ReadonlyArray<number> = this.config.tileRenderStrategy.getVisibleTiles({
-                    left: containerNativeElement.scrollLeft,
-                    top: containerNativeElement.scrollTop
-                })
-                // map to row major flat indices
-                    .map(viewIndex => viewIndex.row * n + viewIndex.col);
-
-                this.matrixViewComponent.tileRenderers.forEach(renderer => {
-                    if (visibleTiles.indexOf(renderer.tile.rowMajorIndex) !== -1) {
-                        // tile should not be visible, check if it is currently visible
-                        if (renderer.visible) {
-                            renderer.visible = false;
-                            renderer.changeDetectionRef.detectChanges();
-                        }
-                    } else {
-                        if (!renderer.visible) {
-                            renderer.visible = true;
-                            renderer.changeDetectionRef.detectChanges();
-                        }
-                    }
-                });
-                // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
-
+                // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
+                // too expensive.
+                this.updateTileVisibility(this._scrollableTiles)
+                    .filter(tile => tile.renderer)
+                    .forEach(tile => tile.renderer.detectChanges());
             };
             this.matrixViewComponent.container.nativeElement.addEventListener('scroll', this.scrollListener);
         });
+    }
+
+    /**
+     * update {@link Tile#visible visible} property, depending on the current {@link #tileRenderStrategy}.
+     *
+     * Note, this method does not have any side effects. The state of <pre>this</pre> is kept unchanged.
+     *
+     * @param {ReadonlyArray} tiles tiles to update {@link Tile#visible visible} on.
+     * @return {ReadonlyArray} array of tiles, where the {@link Tile#visible visible} property was updated.
+     */
+    private updateTileVisibility(tiles: ReadonlyArray<Tile<CellValueType>>): ReadonlyArray<Tile<CellValueType>> {
+        this.log.trace(() => `updateTileVisibility(${JSON.stringify(tiles)})`);
+        const matrixViewComponent = this.matrixViewComponent;
+        const container = matrixViewComponent.container;
+        if (!container) {
+            this.log.debug(() => `no container set, ignoring tile visibility update`);
+            return;
+        }
+        const containerNativeElement = container.nativeElement;
+        // TODO DST: compute which tiles to render and trigger change detection on the tile component renderers
+
+        // TODO DST: maybe one needs to optimize here, since computing the viewportSize may be expensive
+        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles({
+            left: containerNativeElement.scrollLeft,
+            top: containerNativeElement.scrollTop
+        });
+        this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
+
+        // map to row major flat indices
+        const n = this.tileSize.width;
+        const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(viewIndex => {
+            return viewIndex.row * n + viewIndex.col;
+        });
+        this.log.trace(() => `visibleTileRowMajorIndices: ${JSON.stringify(visibleTileRowMajorIndices)}`);
+
+        const updatedTiles: Tile<CellValueType>[] = [];
+        tiles.forEach(tile => {
+            if (visibleTileRowMajorIndices.indexOf(tile.rowMajorIndex) === -1) {
+                // tile should not be visible, check if it is currently visible
+                // do check for false here explicitly, because initially visibility may be undefined.
+                if (tile.visible !== false) {
+                    this.log.trace(() => `hiding tile ${JSON.stringify(tile.viewIndex)}`);
+                    tile.visible = false;
+                    updatedTiles.push(tile);
+                }
+            } else {
+                // this tile should be rendered, check if it is visible already
+                // do check for true here explicitly, because initially visibility may be undefined.
+                if (tile.visible !== true) {
+                    this.log.trace(() => `showing tile ${JSON.stringify(tile.viewIndex)}`);
+                    tile.visible = true;
+                    updatedTiles.push(tile);
+                }
+            }
+        });
+        // TODO DST: later compare, which tile where shown before and only trigger those, which where hidden before.
+        return updatedTiles;
     }
 }
 
