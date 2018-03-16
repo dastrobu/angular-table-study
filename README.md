@@ -6,6 +6,8 @@ dimensional data, i.e. a matrix.
  * [Customization and Styling](#customization-and-styling)
  * [Features](#features)
  * [Browser Support](#browser-support)
+ * [Known Issues](#known-issues)
+ * [Demos](#demos)
 
 ## Customization and Styling
 
@@ -18,7 +20,7 @@ via [Angular templates](https://angular.io/guide/template-syntax).
 The features are either implemented or planned.
 
  * [Fixed Columns and Rows](#fixed-columns-and-rows) (implemented)
- * [Virtual DOM](#virtual-dom) (planned)
+ * [Virtual DOM](#virtual-dom) (implemented)
  * [Selection Model](#selection-model) (planned)
  * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (planned)
  * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (planned)
@@ -148,7 +150,31 @@ implementations.
 
 ### Virtual DOM
 
-*planned*
+For performance reasons, a virtual DOM is used. This means, that not all elements of the matrix
+are represented in the DOM at all time, since this can cause huge performance issues for big data sets.
+DOM virtualization in this case means, that only the cells, visible in the viewport, or those that 
+are getting close to be visible are represented in the DOM. All other cells exist only in virtually, 
+meaning only cell values are kept im memory, but no actual elements to show the cells exist in the DOM.
+The naive approach, to implement a virtual DOM would be to show and hide all cells, depending on the 
+scroll position via `*ngIf`. This would, however, cause a huge number of checks, after each update of the 
+scroll position and on each scroll event, it must be computed, which cells to show and which to hide. 
+To keep the computation on each scroll event as fast as possible, the concept of tiles is introduces.
+A tile is simply a rectangular part of the canvas. So the canvas is simply subdivided into a set of tiles.
+Each tile is kept in the DOM at all time. The cells, that lie inside the tile are only shown, if the tile 
+is visible in the viewport. Since the number of tiles is much smaller than the number of cells, 
+it can be computed very, fast which tiles to show and which to hide. 
+To improve scroll performance even more, especially in slow browser like the IE, one can prefetch a certain 
+amount of tiles, that get close to the viewport. This means, that cells, that are about to come visible 
+through scrolling, are created before they come visible (at leas for smooth scrolling via the wheel). 
+For key press actions like page down or end, one might observe some latency for big data sets and slow 
+browsers. By default, one tile outside the viewport is prefetch.
+
+The tile size can be configured via the `config` input. In general, big tiles speed up the computation 
+on scroll events (which tiles to show) but lead to more elements in the DOM, since also some cells are kept 
+in the DOM, which are inside the tile but not on the viewport. Small tiles, on the other hand, make sure 
+that most cells, which are invisible are removed from the DOM but require more effort to update there
+visibility state on scrolling. Hence, it is a trade of how big the tile size should be chosen.
+
 
 ### Selection Model
 
@@ -195,6 +221,10 @@ observables, to keep track of changes. A detailed discussion can be found in the
 
  * Fixed areas do not work correctly, if the number for rows/cols is smaller or equal to the number of fixed cols/rows.
  * Wheel scrolling over fixed areas does not work in Chrome.
+ * When there are more fixed columns than columns, display is a bit strange, since cells 
+   are displayed in two fixed areas. Can be fixed easily.
+ * In rare case, some content is not displayed on fixed areas after creation. After the first scroll event, 
+   all content is shown correctly. Reason is unknown.
  
 ## Demos
  
@@ -206,8 +236,4 @@ The following demos should be implemented as show cases.
   * drag and drop on columns
   * matrix without horizontal scrolling
   * row and columns selection
-  
-## Challenges
- * Big Viewports?
- * Drag & Drop
   

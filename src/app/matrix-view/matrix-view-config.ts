@@ -77,7 +77,7 @@ export class Config implements MatrixViewConfig {
 
         if (config.tileSize !== undefined && config.tileSize !== null) {
             this.tileSize = config.tileSize;
-            this.log.info(() => `did set tileSize: ${this.tileSize}`);
+            this.log.info(() => `did set tileSize: ${JSON.stringify(this.tileSize)}`);
         }
 
         if (config.tileRenderStrategy !== undefined && config.tileRenderStrategy !== null) {
