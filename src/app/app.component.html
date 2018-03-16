@@ -44,8 +44,10 @@
         <td><input title="ok" type="button" value="OK" (click)="ok()"></td>
     </tr>
     <tr>
-        <td><label>tile size</label></td>
-        <td><input title="tile size" type="text" [formControl]="tileSizeFormControl" size="3"></td>
+        <td><label>tile size (width/height)</label></td>
+        <td>
+            <input title="tile size" type="text" [formControl]="tileWidthFormControl" size="3">
+            <input title="tile size" type="text" [formControl]="tileHeightFormControl" size="3"></td>
     </tr>
 </table>
 <matrix-view

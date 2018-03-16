@@ -12,7 +12,8 @@ import {FormControl} from '@angular/forms';
 export class AppComponent implements OnInit {
     modelSubject = new BehaviorSubject<MatrixViewModel<string>>(null);
     colCountFormControl = new FormControl();
-    tileSizeFormControl = new FormControl();
+    tileHeightFormControl = new FormControl();
+    tileWidthFormControl = new FormControl();
     private config: MatrixViewConfig = {};
     configSubject = new BehaviorSubject<MatrixViewConfig>(this.config);
     rowCountFormControl = new FormControl();
@@ -23,14 +24,15 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(10);
-        this.rowCountFormControl.setValue(1);
+        this.colCountFormControl.setValue(3);
+        this.rowCountFormControl.setValue(3);
         this.fixedTopFormControl.setValue(false);
         this.fixedBottomFormControl.setValue(false);
         this.fixedRightFormControl.setValue(false);
         this.fixedLeftFormControl.setValue(false);
         this.logLevelFormControl.setValue('debug');
-        this.tileSizeFormControl.setValue(200);
+        this.tileWidthFormControl.setValue(500);
+        this.tileHeightFormControl.setValue(200);
     }
 
     ngOnInit(): void {
@@ -52,8 +54,8 @@ export class AppComponent implements OnInit {
                 right: this.fixedRightFormControl.value,
             },
             tileSize: {
-                width: this.tileSizeFormControl.value,
-                height: this.tileSizeFormControl.value,
+                width: this.tileWidthFormControl.value,
+                height: this.tileHeightFormControl.value,
             },
         };
         this.configSubject.next(this.config);
