@@ -39,6 +39,14 @@ export class DefaultTileRenderStrategy implements TileRenderStrategy {
     tileSize: BoxSize;
     canvasSize: BoxSize;
     viewportSize: BoxSize;
+    /**
+     * the prefetch offset, controls, how many tiles, that are not on the viewport, but adjacent to the viewport will
+     * be shown.
+     * This has the effect, that scrolling gets smother, if the elements are already placed in the DOM when they get
+     * close to the viewport.
+     * This should be something between 0 and a small number, default 1.
+     */
+    prefetchOffset = 1;
 
     getVisibleTiles(scrollPosition: Point2D): ReadonlyArray<RowCol<number>> {
         const tileWidth = this.tileSize.width;
@@ -51,12 +59,16 @@ export class DefaultTileRenderStrategy implements TileRenderStrategy {
         const width = Math.min(viewportSize.width, canvasSize.width);
         const height = Math.min(viewportSize.height, canvasSize.height);
 
-        const left = Math.floor(scrollPosition.left / tileWidth);
-        const right = Math.ceil((scrollPosition.left + width) / tileWidth);
-        const top = Math.floor(scrollPosition.top / tileHeight);
-        const bottom = Math.ceil((scrollPosition.top + height) / tileHeight);
+        let left = Math.floor(scrollPosition.left / tileWidth);
+        const prefetchOffset = this.prefetchOffset;
+        left = Math.max(0, left - prefetchOffset);
+        let right = Math.ceil((scrollPosition.left + width) / tileWidth);
+        right += prefetchOffset;
+        let top = Math.floor(scrollPosition.top / tileHeight);
+        top = Math.max(0, top - prefetchOffset);
+        let bottom = Math.ceil((scrollPosition.top + height) / tileHeight);
+        bottom += prefetchOffset;
         const tiles = [];
-        // TODO: implement prefetching of tiles
         // TODO: rethink if there is a corner case, where one must use i <= instead of <
         for (let i = top; i < bottom; ++i) {
             for (let j = left; j < right; j++) {
