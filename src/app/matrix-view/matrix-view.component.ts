@@ -9,6 +9,7 @@ import {
     OnDestroy,
     OnInit,
     QueryList,
+    TemplateRef,
     ViewChild,
     ViewChildren
 } from '@angular/core';
@@ -17,7 +18,7 @@ import {Config, MatrixViewConfig} from './matrix-view-config';
 import {Log} from './log';
 import {Observable} from 'rxjs/Observable';
 import {Subscription} from 'rxjs/Subscription';
-import {MatrixViewViewModel} from './matrix-view-view-model';
+import {Cell, MatrixViewViewModel} from './matrix-view-view-model';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {MatrixViewTileRendererComponent} from './matrix-view-tile-renderer/matrix-view-tile-renderer.component';
 
@@ -75,6 +76,78 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     @ViewChild('fixedTopLeft')
     public fixedTopLeft: ElementRef;
+
+    /** template to be used for cells */
+    @Input('cellTemplate')
+    public cellTemplate: TemplateRef<{ cell: Cell<CellValueType> }>;
+
+    /**
+     * Template for fixed corners.
+     * If any of the more specific templates is set:
+     * {@link #fixedTopLeftTemplate}
+     * {@link #fixedTopRight}
+     * {@link #fixedBottomLeftTemplate}
+     * {@link #fixedBottomRight}
+     * this template will be employed for the specific corner instead.
+     */
+    @Input('fixedCornerTemplate')
+    public fixedCornerTemplate: TemplateRef<any>;
+
+    /**
+     * Template for fixed corner.
+     * If not set, {@link #fixedCornerTemplate} will be employed.
+     */
+    @Input('fixedTopLeftTemplate')
+    public fixedTopLeftTemplate: TemplateRef<any>;
+
+    /**
+     * Template for fixed corner.
+     * If not set, {@link #fixedCornerTemplate} will be employed.
+     */
+    @Input('fixedTopRightTemplate')
+    public fixedTopRightTemplate: TemplateRef<any>;
+
+    /**
+     * Template for fixed corner.
+     * If not set, {@link #fixedCornerTemplate} will be employed.
+     */
+    @Input('fixedBottomLeftTemplate')
+    public fixedBottomLeftTemplate: TemplateRef<any>;
+
+    /**
+     * Template for fixed corner.
+     * If not set, {@link #fixedCornerTemplate} will be employed.
+     */
+    @Input('fixedBottomRightTemplate')
+    public fixedBottomRightTemplate: TemplateRef<any>;
+
+    /**
+     * Template for fixed right cells.
+     * If not set, {@link #cellTemplate} will be employed.
+     */
+    @Input('fixedRightCellTemplate')
+    public fixedRightCellTemplate: TemplateRef<{ cell: Cell<CellValueType> }>;
+
+    /**
+     * Template for fixed left cells.
+     * If not set, {@link #cellTemplate} will be employed.
+     */
+    @Input('fixedLeftCellTemplate')
+    public fixedLeftCellTemplate: TemplateRef<{ cell: Cell<CellValueType> }>;
+
+    /**
+     * Template for fixed top cells.
+     * If not set, {@link #cellTemplate} will be employed.
+     */
+    @Input('fixedTopCellTemplate')
+    public fixedTopCellTemplate: TemplateRef<{ cell: Cell<CellValueType> }>;
+
+    /**
+     * Template for fixed bottom cells.
+     * If not set, {@link #cellTemplate} will be employed.
+     */
+    @Input('fixedBottomCellTemplate')
+    public fixedBottomCellTemplate: TemplateRef<{ cell: Cell<CellValueType> }>;
 
     @ViewChildren('scrollableTileRenderers')
     scrollableTileRenderers: QueryList<MatrixViewTileRendererComponent<CellValueType>> =
@@ -167,6 +240,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
         // init children
         this.viewModel.ngOnInit();
+        this.log.debug(() => `cellTemplate: ${this.cellTemplate}`);
     }
 
     ngAfterViewInit(): void {

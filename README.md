@@ -15,6 +15,22 @@ The primary goal of the matrix-view is to have a highly customizable component. 
 be implemented on this component. Instead the component should be as customizable as possible 
 via [Angular templates](https://angular.io/guide/template-syntax).
 
+Currently there are templates for 
+ * cells
+    `cellTemplate` for all cells. If not provided, `cell.value` will be rendered by default. This template may 
+    be overridden for fixed areas.
+ * fixed cells
+    `fixedTopCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
+    `fixedBottomCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
+    `fixedLeftCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
+    `fixedRightCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
+ * fixed corners
+    `fixedCornerTemplate` for all corners
+    `fixedTopLeftTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
+    `fixedTopRight` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
+    `fixedBottomLeftTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
+    `fixedBottomRightTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
+
 ## Features
 
 The features are either implemented or planned.
@@ -25,6 +41,7 @@ The features are either implemented or planned.
  * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (planned)
  * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (planned)
  * [Colspan and Rowspan](#colspan-and-rowspan) (planned)
+ * [Grid](#grid) (planned)
 
 ### Fixed Columns and Rows
 
@@ -197,6 +214,11 @@ header cell.
 ### Colspan and Rowspan
 
 *planned*
+
+### Grid
+
+*planned*
+It is possible to render a grid between rows and columns. 
 
 ## Browser Support
 

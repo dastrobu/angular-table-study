@@ -10,6 +10,6 @@
         [style.height]="cell.size.height + 'px'"
         [style.width]="cell.size.width + 'px'"
     >
-        {{cell.value}}
+        <ng-container *ngTemplateOutlet="cellTemplate; context:{cell: cell}"></ng-container>
     </div>
 </ng-container>

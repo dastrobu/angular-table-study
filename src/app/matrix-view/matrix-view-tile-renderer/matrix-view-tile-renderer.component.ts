@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, TemplateRef} from '@angular/core';
 import {Tile} from '../matrix-view-view-model';
 
 @Component({
@@ -11,6 +11,9 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
     @Input()
     public tile: Tile<CellValueType>;
 
+    @Input()
+    public cellTemplate: TemplateRef<any>;
+
     constructor(private changeDetectionRef: ChangeDetectorRef) {
     }
 
@@ -20,10 +23,16 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
 
     ngOnInit() {
         this.tile.renderer = this;
+        if (!this.cellTemplate) {
+            throw new Error(`no cell template provided for tile: ${JSON.stringify(this.tile.index)}`);
+        }
     }
 
     ngOnDestroy(): void {
-        this.tile.renderer = undefined;
+        const tile = this.tile;
+        if (tile) {
+            tile.renderer = undefined;
+        }
     }
 
 }

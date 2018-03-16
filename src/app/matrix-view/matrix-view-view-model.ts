@@ -14,8 +14,7 @@ import {MatrixViewTileRendererComponent} from './matrix-view-tile-renderer/matri
 
 /** cell representation */
 export interface Cell<CellValueType> {
-    readonly viewIndex: RowCol<number>;
-    readonly modelIndex: RowCol<number>;
+    readonly index: RowCol<number>;
     readonly position: Point2D;
     readonly value: CellValueType;
     readonly size: BoxSize;
@@ -23,12 +22,26 @@ export interface Cell<CellValueType> {
 
 /** interface for a tile, which is employed to handle the virtual dom */
 export interface Tile<CellValueType> {
-    readonly viewIndex: RowCol<number>;
+
+    /** index of the tile on the canvas */
+    readonly index: RowCol<number>;
+
+    /** position on the canvas in px */
     readonly position: Point2D;
+
+    /**
+     * size of the tile (usually {@link Config#tileSize}, except for tiles on the edges of the canvas which are
+     * smaller
+     */
     readonly size: BoxSize;
+
+    /** flag indicating, if the current tile is visible */
     readonly cells: Cell<CellValueType>[];
-    readonly rowMajorIndex: number;
+
+    /** flag indicating, if the current tile is visible */
     visible: boolean;
+
+    /** the renderer, responsible for rendering the tile */
     renderer?: MatrixViewTileRendererComponent<CellValueType>;
 }
 
@@ -308,18 +321,59 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
     private _canvasSize: BoxSize;
 
 
-    /** @return {number} rowHeight of a certain row in px */
-    public rowHeight(modelIndex: number): number {
-        const n = this.model.rowModel.rowHeight(modelIndex);
-        this.log.trace(() => `rowHeight(${modelIndex}) => ${n}`);
-        return n;
+    get scrollableCells(): ReadonlyArray<Cell<CellValueType>> {
+        const dim = this.model.dimension;
+        const fixedTop = this.fixedTop;
+        const fixedBottom = this.fixedBottom;
+        const fixedLeft = this.fixedLeft;
+        const fixedRight = this.fixedRight;
+        const scrollableCells = [];
+        // TODO DST: handle special case, where dimension.rows <= fixedBottom (for all fixed areas)
+        this.model.cells
+        // filter all rows, that belong to fixed top or bottom
+            .slice(fixedTop, dim.rows - fixedBottom)
+            .forEach((row, rowIndex) => {
+                // filter all cols, that belong to fixed left or right
+                row.slice(fixedLeft, dim.cols - fixedRight)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex + fixedTop;
+                        const j = collIndex + fixedLeft;
+                        scrollableCells.push({
+                            index: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
+                    });
+            });
+        this.log.trace(() => `scrollableCells => ${JSON.stringify(scrollableCells)}`);
+        return scrollableCells;
     }
 
-    /** @return {number} colWidth of a certain col in px */
-    public colWidth(modelIndex: number): number {
-        const n = this.model.colModel.colWidths[modelIndex];
-        this.log.trace(() => `colWidth(${modelIndex}) => ${n}`);
-        return n;
+    get fixedLeftCells(): ReadonlyArray<Cell<CellValueType>> {
+        const dim = this.model.dimension;
+        const fixedBottom = this.fixedBottom;
+        const fixedLeft = this.fixedLeft;
+        const fixedLeftCells = [];
+        const fixedTop = this.fixedTop;
+        this.model.cells
+        // fixed left is lowest, so filter all rows, that belong to fixed top or bottom
+            .slice(fixedTop, dim.rows - fixedBottom)
+            .forEach((row, rowIndex) => {
+                row.slice(0, fixedLeft)
+                    .forEach((cell, collIndex) => {
+                        const i = rowIndex + fixedTop;
+                        const j = collIndex;
+                        fixedLeftCells.push({
+                            index: {row: i, col: j},
+                            value: cell,
+                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
+                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
+                        });
+                    });
+            });
+        this.log.trace(() => `fixedLeftCells => ${JSON.stringify(fixedLeftCells)}`);
+        return fixedLeftCells;
     }
 
     /**
@@ -393,74 +447,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         return n;
     }
 
-    get scrollableCells(): ReadonlyArray<Cell<CellValueType>> {
-        const dim = this.model.dimension;
-        const fixedTop = this.fixedTop;
-        const fixedBottom = this.fixedBottom;
-        const fixedLeft = this.fixedLeft;
-        const fixedRight = this.fixedRight;
-        const scrollableCells = [];
-        // TODO DST: handle special case, where dimension.rows <= fixedBottom (for all fixed areas)
-        this.model.cells
-        // filter all rows, that belong to fixed top or bottom
-            .slice(fixedTop, dim.rows - fixedBottom)
-            .forEach((row, rowIndex) => {
-                // filter all cols, that belong to fixed left or right
-                row.slice(fixedLeft, dim.cols - fixedRight)
-                    .forEach((cell, collIndex) => {
-                        const i = rowIndex + fixedTop;
-                        const j = collIndex + fixedLeft;
-                        scrollableCells.push({
-                            modelIndex: {row: i, col: j},
-                            viewIndex: {row: i, col: j},
-                            value: cell,
-                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
-                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
-                        });
-                    });
-            });
-        this.log.trace(() => `scrollableCells => ${JSON.stringify(scrollableCells)}`);
-        return scrollableCells;
-    }
-
-    get fixedLeftCells(): ReadonlyArray<Cell<CellValueType>> {
-        const dim = this.model.dimension;
-        const fixedBottom = this.fixedBottom;
-        const fixedLeft = this.fixedLeft;
-        const fixedLeftCells = [];
-        const fixedTop = this.fixedTop;
-        this.model.cells
-        // fixed left is lowest, so filter all rows, that belong to fixed top or bottom
-            .slice(fixedTop, dim.rows - fixedBottom)
-            .forEach((row, rowIndex) => {
-                row.slice(0, fixedLeft)
-                    .forEach((cell, collIndex) => {
-                        const i = rowIndex + fixedTop;
-                        const j = collIndex;
-                        fixedLeftCells.push({
-                            modelIndex: {row: i, col: j},
-                            viewIndex: {row: i, col: j},
-                            value: cell,
-                            position: {top: this.rowPosition(i), left: this.colPosition(j)},
-                            size: {height: this.rowHeight(i), width: this.colWidth(j)}
-                        });
-                    });
-            });
-        this.log.trace(() => `fixedLeftCells => ${JSON.stringify(fixedLeftCells)}`);
-        return fixedLeftCells;
-    }
-
-    ngOnDestroy(): void {
-        this.log.debug(() => `ngOnDestroy()`);
-        // clean up the scroll listener
-        if (this.scrollListener) {
-            this.matrixViewComponent.container.nativeElement.removeEventListener('scroll', this.scrollListener);
-        }
-        if (this.subscriptions) {
-            this.subscriptions.forEach(subscription => subscription.unsubscribe());
-        }
-    }
-
     get fixedRightCells(): ReadonlyArray<Cell<CellValueType>> {
         const dim = this.model.dimension;
         const fixedRight = this.fixedRight;
@@ -474,8 +460,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const i = rowIndex;
                         const j = collIndex + offset;
                         fixedRightCells.push({
-                            modelIndex: {row: i, col: j},
-                            viewIndex: {row: i, col: j},
+                            index: {row: i, col: j},
+                            index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},
                             size: {height: this.rowHeight(i), width: this.colWidth(j)}
@@ -500,8 +486,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const i = rowIndex;
                         const j = collIndex;
                         fixedTopCells.push({
-                            modelIndex: {row: i, col: j},
-                            viewIndex: {row: i, col: j},
+                            index: {row: i, col: j},
+                            index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},
                             size: {height: this.rowHeight(i), width: this.colWidth(j)}
@@ -510,6 +496,17 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
             });
         this.log.trace(() => `fixedTopCells => ${JSON.stringify(fixedTopCells)}`);
         return fixedTopCells;
+    }
+
+    ngOnDestroy(): void {
+        this.log.debug(() => `ngOnDestroy()`);
+        // clean up the scroll listener
+        if (this.scrollListener) {
+            this.matrixViewComponent.container.nativeElement.removeEventListener('scroll', this.scrollListener);
+        }
+        if (this.subscriptions) {
+            this.subscriptions.forEach(subscription => subscription.unsubscribe());
+        }
     }
 
     get fixedBottomCells(): ReadonlyArray<Cell<CellValueType>> {
@@ -527,8 +524,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const i = rowIndex + offset;
                         const j = collIndex;
                         fixedBottomCells.push({
-                            modelIndex: {row: i, col: j},
-                            viewIndex: {row: i, col: j},
+                            index: {row: i, col: j},
+                            index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},
                             size: {height: this.rowHeight(i), width: this.colWidth(j)}
@@ -539,22 +536,36 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
         return fixedBottomCells;
     }
 
+    /** @return {number} rowHeight of a certain row in px */
+    public rowHeight(index: number): number {
+        const n = this.model.rowModel.rowHeight(index);
+        this.log.trace(() => `rowHeight(${index}) => ${n}`);
+        return n;
+    }
+
+    /** @return {number} colWidth of a certain col in px */
+    public colWidth(index: number): number {
+        const n = this.model.colModel.colWidths[index];
+        this.log.trace(() => `colWidth(${index}) => ${n}`);
+        return n;
+    }
+
     /** @return {number} position of a certain row in px */
-    public rowPosition(modelIndex: number): number {
-        const n = this.model.rowModel.rowPositions[modelIndex];
-        this.log.trace(() => `rowPosition(${modelIndex}) => ${n}`);
+    public rowPosition(index: number): number {
+        const n = this.model.rowModel.rowPositions[index];
+        this.log.trace(() => `rowPosition(${index}) => ${n}`);
         if (!Number.isFinite(n)) {
-            throw new Error(`bad rowPosition for modelIndex: ${modelIndex}`);
+            throw new Error(`bad rowPosition for index: ${index}`);
         }
         return n;
     }
 
     /** @return {number} position of a certain col in px */
-    public colPosition(modelIndex: number): number {
-        const n = this.model.colModel.colPositions[modelIndex];
-        this.log.trace(() => `colPosition(${modelIndex}) => ${n}`);
+    public colPosition(index: number): number {
+        const n = this.model.colModel.colPositions[index];
+        this.log.trace(() => `colPosition(${index}) => ${n}`);
         if (!Number.isFinite(n)) {
-            throw new Error(`bad rowPosition for modelIndex: ${modelIndex}`);
+            throw new Error(`bad colPosition for index: ${index}`);
         }
         return n;
     }
@@ -667,10 +678,8 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                     width = canvasWidth - left;
                 }
                 const tile: Tile<CellValueType> = {
-                    viewIndex: {row: i, col: j},
+                    index: {row: i, col: j},
                     position: {top: top, left: left},
-                    // compute the row major flat index for lookup and comparison
-                    rowMajorIndex: j + i * n,
                     size: {width: width, height: height},
                     cells: [],
                     visible: undefined,
@@ -706,7 +715,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
      */
     private updateTileVisibility(tiles: ReadonlyArray<Tile<CellValueType>>,
                                  scrollPosition: Point2D): ReadonlyArray<Tile<CellValueType>> {
-        this.log.trace(() => `updateTileVisibility(${JSON.stringify(tiles.map(tile => tile.viewIndex))})`);
+        this.log.trace(() => `updateTileVisibility(${JSON.stringify(tiles.map(tile => tile.index))})`);
         const container = this.matrixViewComponent.container;
         if (!container) {
             this.log.debug(() => `no container set, ignoring tile visibility update`);
@@ -718,19 +727,20 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
 
         // map to row major flat indices
         const n = this.canvasSize.width / this.config.tileSize.width;
-        const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(viewIndex => {
-            return viewIndex.row * n + viewIndex.col;
+        const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(index => {
+            return index.row * n + index.col;
         });
         this.log.trace(() => `visibleTileRowMajorIndices: ${JSON.stringify(visibleTileRowMajorIndices)}`);
 
         const updatedTiles: Tile<CellValueType>[] = [];
         tiles.forEach(tile => {
             // TODO DST: lookup could be improved
-            if (visibleTileRowMajorIndices.indexOf(tile.rowMajorIndex) === -1) {
+            const index = tile.index;
+            if (visibleTileRowMajorIndices.indexOf(index.row * n + index.col) === -1) {
                 // tile should not be visible, check if it is currently visible
                 // do check for false here explicitly, because initially visibility may be undefined.
                 if (tile.visible !== false) {
-                    this.log.trace(() => `hiding tile ${JSON.stringify(tile.viewIndex)}`);
+                    this.log.trace(() => `hiding tile ${JSON.stringify(index)}`);
                     tile.visible = false;
                     updatedTiles.push(tile);
                 }
@@ -738,7 +748,7 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                 // this tile should be rendered, check if it is visible already
                 // do check for true here explicitly, because initially visibility may be undefined.
                 if (tile.visible !== true) {
-                    this.log.trace(() => `showing tile ${JSON.stringify(tile.viewIndex)}`);
+                    this.log.trace(() => `showing tile ${JSON.stringify(index)}`);
                     tile.visible = true;
                     updatedTiles.push(tile);
                 }

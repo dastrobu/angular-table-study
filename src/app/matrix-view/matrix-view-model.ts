@@ -7,14 +7,14 @@ import {defaults} from './matrix-view-config';
 /**
  * Union type to set sizes on either rows or columns.
  * One can either define sizes via a single number, via an array or via a function, which maps a size to each
- * modelIndex.
+ * index.
  * The last variant, is helpful, to define e.g. two different sizes, one for the header row and one for all other.
  * In this case, one could pass
  * <pre>
- *     (modelIndex: number) => { modelIndex == 0 ? 25px : 20px }
+ *     (index: number) => { index == 0 ? 25px : 20px }
  * </pre>
  */
-export declare type SizeProvider = number | ReadonlyArray<number> | ((modelIndex: number) => number);
+export declare type SizeProvider = number | ReadonlyArray<number> | ((index: number) => number);
 
 /**
  * Model of the matrix.
@@ -196,12 +196,12 @@ export class RowModel<CellValueType> implements MatrixViewRowModel<CellValueType
 
     /**
      * @return row height of the indexed row in px
-     * @param modelIndex index of the row
+     * @param index index of the row
      */
-    rowHeight(modelIndex: number): number {
-        if (modelIndex === null || modelIndex === undefined || modelIndex < 0 || modelIndex > this.size) {
-            throw new Error(`bad modelIndex: ${modelIndex}`);
+    rowHeight(index: number): number {
+        if (index === null || index === undefined || index < 0 || index > this.size) {
+            throw new Error(`bad index: ${index}`);
         }
-        return this._rowHeights[modelIndex];
+        return this._rowHeights[index];
     }
 }

@@ -24,12 +24,12 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(5);
+        this.colCountFormControl.setValue(20);
         this.rowCountFormControl.setValue(20);
-        this.fixedTopFormControl.setValue(2);
+        this.fixedTopFormControl.setValue(1);
         this.fixedBottomFormControl.setValue(0);
         this.fixedRightFormControl.setValue(0);
-        this.fixedLeftFormControl.setValue(0);
+        this.fixedLeftFormControl.setValue(1);
         this.logLevelFormControl.setValue('debug');
         this.tileWidthFormControl.setValue(500);
         this.tileHeightFormControl.setValue(200);
@@ -57,7 +57,7 @@ export class AppComponent implements OnInit {
                 width: this.tileWidthFormControl.value,
                 height: this.tileHeightFormControl.value,
             },
-            showFixedCorners: false,
+            // showFixedCorners: false,
         };
         this.configSubject.next(this.config);
         const cells = [];

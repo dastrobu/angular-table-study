@@ -1,28 +1,28 @@
 <table>
     <tr>
         <td><label>cols</label></td>
-        <td><input title="cols" type="text" [formControl]="colCountFormControl" size="2"></td>
+        <td><input title="cols" type="text" [formControl]="colCountFormControl" size="3"></td>
     </tr>
     <tr>
         <td><label>rows</label></td>
-        <td><input title="rows" type="text" [formControl]="rowCountFormControl" size="2">
+        <td><input title="rows" type="text" [formControl]="rowCountFormControl" size="3">
         </td>
     </tr>
     <tr>
         <td><label>fixed top (number of rows)</label></td>
-        <td><input title="fixed top" type="text" [formControl]="fixedTopFormControl" size="2"></td>
+        <td><input title="fixed top" type="text" [formControl]="fixedTopFormControl" size="3"></td>
     </tr>
     <tr>
         <td><label>fixed bottom (number of rows)</label></td>
-        <td><input title="fixed bottom" type="text" [formControl]="fixedBottomFormControl" size="2"></td>
+        <td><input title="fixed bottom" type="text" [formControl]="fixedBottomFormControl" size="3"></td>
     </tr>
     <tr>
         <td><label>fixed left (number of cols)</label></td>
-        <td><input title="fixed right" type="text" [formControl]="fixedLeftFormControl" size="2"></td>
+        <td><input title="fixed right" type="text" [formControl]="fixedLeftFormControl" size="3"></td>
     </tr>
     <tr>
         <td><label>fixed right (number of cols)</label></td>
-        <td><input title="fixed right" type="text" [formControl]="fixedRightFormControl" size="2"></td>
+        <td><input title="fixed right" type="text" [formControl]="fixedRightFormControl" size="3"></td>
     </tr>
     <tr>
         <td><label>log level</label></td>
@@ -38,8 +38,8 @@
     <tr>
         <td><label>tile size (width/height)</label></td>
         <td>
-            <input title="tile size" type="text" [formControl]="tileWidthFormControl" size="2">
-            <input title="tile size" type="text" [formControl]="tileHeightFormControl" size="2"></td>
+            <input title="tile size" type="text" [formControl]="tileWidthFormControl" size="3">
+            <input title="tile size" type="text" [formControl]="tileHeightFormControl" size="3"></td>
     </tr>
     <tr>
         <td></td>
@@ -49,4 +49,31 @@
 <matrix-view
     [config]="configSubject"
     [model]="modelSubject"
-    style="width: 1000px; height: 300px; margin-left: auto; margin-right: auto; margin-top: 20px; display: block"></matrix-view>
+    [cellTemplate]="cellTemplate"
+    [fixedTopCellTemplate]="fixedTopCellTemplate"
+    [fixedLeftCellTemplate]="fixedLeftCellTemplate"
+    [fixedCornerTemplate]="fixedCornerTemplate"
+    style="width: 1000px; height: 300px; margin-left: auto; margin-right: auto; margin-top: 20px; display: block">
+    <ng-template #fixedCornerTemplate>
+        <div class="fill bg-gray fixed-top-left"></div>
+    </ng-template>
+    <ng-template #fixedTopCellTemplate let-cell="cell">
+        <div class="fill bg-gray fixed-top-cell">
+            Col {{cell.index.col}}
+        </div>
+    </ng-template>
+    <ng-template #fixedLeftCellTemplate let-cell="cell">
+        <div class="fill bg-gray fixed-left-cell">
+            {{cell.index.row}}
+        </div>
+    </ng-template>
+    <ng-template #cellTemplate let-cell="cell">
+        <div [ngSwitch]="cell.index.col" class="fill cell">
+            <ng-container *ngSwitchCase="1"><input type="checkbox"></ng-container>
+            <ng-container *ngSwitchCase="2"><input type="text"></ng-container>
+            <ng-container *ngSwitchCase="3"><input type="button" [value]="cell.value"></ng-container>
+            <ng-container *ngSwitchCase="4"><input type="number" [value]="cell.value"></ng-container>
+            <ng-container *ngSwitchDefault>{{cell.value}}</ng-container>
+        </div>
+    </ng-template>
+</matrix-view>
