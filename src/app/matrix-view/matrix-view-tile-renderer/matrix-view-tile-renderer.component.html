@@ -1,15 +1,20 @@
+<!-- default cell template simply prints the value-->
+<ng-template #defaultTemplate let-cell="cell">{{cell.value}}</ng-template>
+
 <!-- ng-contianer is perfect here, since an additional cluttering of the DOM is avoided -->
 <ng-container *ngIf="tile.visible">
     <!-- it seems that top and left performs better than translate3d -->
     <!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
     <div
         class="cell"
+        [ngStyle]="style"
         *ngFor="let cell of tile.cells"
         [style.left]="cell.position.left - tile.position.left + 'px'"
         [style.top]="cell.position.top - tile.position.top + 'px'"
         [style.height]="cell.size.height + 'px'"
         [style.width]="cell.size.width + 'px'"
     >
-        <ng-container *ngTemplateOutlet="cellTemplate; context:{cell: cell}"></ng-container>
+        <ng-container
+            *ngTemplateOutlet="template; context: {$implicit: cell.value, index:cell.index, position: cell.position, size: cell.size}"></ng-container>
     </div>
 </ng-container>

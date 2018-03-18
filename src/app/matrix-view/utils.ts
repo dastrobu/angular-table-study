@@ -29,9 +29,9 @@ export interface Point2D {
  */
 export interface BoxSides<T> {
     readonly top: T;
-    readonly left: T;
     readonly right: T;
     readonly bottom: T;
+    readonly left: T;
 }
 
 /**

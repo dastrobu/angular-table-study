@@ -15,21 +15,73 @@ The primary goal of the matrix-view is to have a highly customizable component. 
 be implemented on this component. Instead the component should be as customizable as possible 
 via [Angular templates](https://angular.io/guide/template-syntax).
 
-Currently there are templates for 
- * cells
-    `cellTemplate` for all cells. If not provided, `cell.value` will be rendered by default. This template may 
-    be overridden for fixed areas.
- * fixed cells
-    `fixedTopCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
-    `fixedBottomCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
-    `fixedLeftCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
-    `fixedRightCellTemplate` for cells in the fixed top area, if not given, `cellTemplate` will employed instead.
+The strategy, to make styling as customizable as possible is to use templates with structural directives. 
+This allows to define templates for various elements fo the matrix view and also to pass styles.
+The following example shows, how to define a template for a cell, which renders cell value together with
+the index of the cell.
+```html
+<ng-container *matrixViewCell="let cellValue; let index=index">
+    {{cellValue}} (row: {{index.row}}, col: {{index.col}})
+</ng-container>
+```
+
+Currently there are directives for 
+ * cells  
+    Template and styling can be specified via the [matrixViewCell](src/app/matrix-view/directives/matrix-view-cell.directive.ts)
+    If no matrixViewCell directive is provided, `cell.value` will be rendered by default. 
+    This template may be overridden for fixed areas.
+ * fixed cells 
+    Template and styling can be specified via the [matrixViewFixedCell](src/app/matrix-view/directives/matrix-view-fixed-cell.directive.ts)
+    If no matrixViewCell directive is provided, the fixed cell will be rendered like the scrollable cells.
+    Template and styling can be overridden for specific fixed areas by employing the following directives
+     * [matrixViewFixedTopCell](src/app/matrix-view/directives/matrix-view-fixed-top-cell.directive.ts)
+     * [matrixViewFixedRightCell](src/app/matrix-view/directives/matrix-view-fixed-right-cell.directive.ts)
+     * [matrixViewFixedBottomCell](src/app/matrix-view/directives/matrix-view-fixed-bottom-cell.directive.ts)
+     * [matrixViewFixedLeftCell](src/app/matrix-view/directives/matrix-view-fixed-left-cell.directive.ts)
  * fixed corners
-    `fixedCornerTemplate` for all corners
-    `fixedTopLeftTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
-    `fixedTopRight` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
-    `fixedBottomLeftTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
-    `fixedBottomRightTemplate` for the top left corner, will be employed instead of `fixedCornerTemplate` is given.
+    Template and styling can be specified via the [matrixViewFixedCorner](src/app/matrix-view/directives/matrix-view-fixed-corner.directive.ts)
+    Template and styling can be overridden for specific fixed corners by employing the following directives
+     * [matrixViewFixedTopLeftCorner](src/app/matrix-view/directives/matrix-view-fixed-top-left-corner.directive.ts)
+     * [matrixViewFixedTopRightCorner](src/app/matrix-view/directives/matrix-view-fixed-top-right-corner.directive.ts)
+     * [matrixViewFixedBottomLeftCorner](src/app/matrix-view/directives/matrix-view-fixed-bottom-left-corner.directive.ts)
+     * [matrixViewFixedBottomRightCorner](src/app/matrix-view/directives/matrix-view-fixed-bottom-left-corner.directive.ts)
+
+### Performance
+
+Doing styling alone via templates can clutter the DOM unnecessarily, especially for cells. To illustrate, 
+consider, if the background of a cell should be red, which can be achieved with the 
+following cell template 
+```html
+<div *matrixViewCell="let cellValue" style="background: red">
+    {{cellValue}}
+</div>
+```
+This would double the amount of divs in the DOM compared to the unstyled template 
+Remember that 
+[ng-container](https://angular.io/guide/structural-directives#ng-container-to-the-rescue) 
+is not represented in the DOM.
+```html
+<ng-container *matrixViewCell="let cellValue" style="background: red">
+    {{cellValue}}
+</ng-container>
+```
+To avoid inflating the DOM, simple CSS styles should be passed directly via the directives, like 
+in the following example.
+```html
+<ng-container *matrixViewCell="let cellValue haveStyle {'background': 'red'}">
+    {{cellValue}}
+</ng-container>
+```
+### Grid
+There is no special support for rendering a grid. This can be simply done via styling the cells.
+The following example shows, how to style the cells:
+```html
+<ng-container *matrixViewCell="let cellValue haveStyle {'border-bottom': '1px solid black'; 'border-right': '1px solid black'}">
+    {{cellValue}}
+</ng-container>
+```
+Together with a border on the whole matrix view, this gives a nice grid.
+
 
 ## Features
 
@@ -41,7 +93,6 @@ The features are either implemented or planned.
  * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (planned)
  * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (planned)
  * [Colspan and Rowspan](#colspan-and-rowspan) (planned)
- * [Grid](#grid) (planned)
 
 ### Fixed Columns and Rows
 
@@ -191,7 +242,6 @@ on scroll events (which tiles to show) but lead to more elements in the DOM, sin
 in the DOM, which are inside the tile but not on the viewport. Small tiles, on the other hand, make sure 
 that most cells, which are invisible are removed from the DOM but require more effort to update there
 visibility state on scrolling. Hence, it is a trade of how big the tile size should be chosen.
-
 
 ### Selection Model
 

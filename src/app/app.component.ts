@@ -10,6 +10,57 @@ import {FormControl} from '@angular/forms';
     styleUrls: ['./app.component.scss']
 })
 export class AppComponent implements OnInit {
+    public style = {
+        cell: {
+            'background': '#f5f5f5',
+
+            'border-bottom': '1px solid black',
+            'border-right': '1px solid black',
+        },
+        fixedCell: {
+            top: {
+                'background': '#d8d8d8',
+
+                'border-bottom-width': '2px',
+                'border-bottom-color': 'black',
+                'border-bottom-style': 'solid',
+
+                'border-right-width': '1px',
+                'border-right-color': 'black',
+                'border-right-style': 'solid',
+            },
+            right: {},
+            bottom: {},
+            left: {
+                'background': '#d8d8d8',
+
+                'border-bottom-width': '1px',
+                'border-bottom-color': 'black',
+                'border-bottom-style': 'solid',
+
+                'border-right-width': '2px',
+                'border-right-color': 'black',
+                'border-right-style': 'solid',
+            },
+        },
+        fixedCorner: {
+            topLeft: {
+                'background': '#d8d8d8',
+
+                'border-bottom-width': '2px',
+                'border-bottom-color': 'black',
+                'border-bottom-style': 'solid',
+
+                'border-right-width': '2px',
+                'border-right-color': 'black',
+                'border-right-style': 'solid',
+            },
+            topRight: {},
+            bottomLeft: {},
+            bottomRight: {},
+        }
+    };
+
     modelSubject = new BehaviorSubject<MatrixViewModel<string>>(null);
     colCountFormControl = new FormControl();
     tileHeightFormControl = new FormControl();

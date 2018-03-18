@@ -1,5 +1,7 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, TemplateRef} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild} from '@angular/core';
 import {Tile} from '../matrix-view-view-model';
+import {CellTemplateContext} from './cell-template-context';
+import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -12,7 +14,27 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
     public tile: Tile<CellValueType>;
 
     @Input()
-    public cellTemplate: TemplateRef<any>;
+    public cellDirective: MatrixViewCellDirective<CellValueType>;
+
+    @ViewChild('defaultTemplate')
+    public defaultTemplate: TemplateRef<CellTemplateContext<CellValueType>>;
+
+    @Input()
+    public cellStyle?: { [key: string]: string; };
+
+    private _template: TemplateRef<CellTemplateContext<CellValueType>>;
+
+    /** template for cells */
+    public get template(): TemplateRef<CellTemplateContext<CellValueType>> {
+        return this._template;
+    }
+
+    private _style: { [key: string]: string; } = {};
+
+    /** style for cells */
+    public get style(): { [key: string]: string; } {
+        return this._style;
+    }
 
     constructor(private changeDetectionRef: ChangeDetectorRef) {
     }
@@ -23,8 +45,22 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
 
     ngOnInit() {
         this.tile.renderer = this;
-        if (!this.cellTemplate) {
-            throw new Error(`no cell template provided for tile: ${JSON.stringify(this.tile.index)}`);
+        if (!this.defaultTemplate) {
+            throw new Error('no defaultTemplate set');
+        }
+
+        // set default template to be used
+        this._template = this.defaultTemplate;
+        const cellDirective = this.cellDirective;
+
+        // check if a directive is given, which overrides the defaults.
+        if (cellDirective) {
+            if (cellDirective.template) {
+                this._template = cellDirective.template;
+            }
+            if (cellDirective.style) {
+                this._style = cellDirective.style;
+            }
         }
     }
 
@@ -33,6 +69,8 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
         if (tile) {
             tile.renderer = undefined;
         }
+        this.tile = undefined;
+        this.cellDirective = undefined;
     }
 
 }

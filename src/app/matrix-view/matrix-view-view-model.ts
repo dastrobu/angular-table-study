@@ -461,7 +461,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const j = collIndex + offset;
                         fixedRightCells.push({
                             index: {row: i, col: j},
-                            index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},
                             size: {height: this.rowHeight(i), width: this.colWidth(j)}
@@ -486,7 +485,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const i = rowIndex;
                         const j = collIndex;
                         fixedTopCells.push({
-                            index: {row: i, col: j},
                             index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},
@@ -524,7 +522,6 @@ export class MatrixViewViewModel<CellValueType> implements OnInit, OnDestroy {
                         const i = rowIndex + offset;
                         const j = collIndex;
                         fixedBottomCells.push({
-                            index: {row: i, col: j},
                             index: {row: i, col: j},
                             value: cell,
                             position: {top: this.rowPosition(i), left: this.colPosition(j)},

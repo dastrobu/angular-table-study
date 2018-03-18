@@ -1,6 +1,3 @@
-<!-- default cell template simply prints the value-->
-<ng-template #defaultCellTemplate let-cell="cell">{{cell.value}}</ng-template>
-
 <!-- our container sits on a ship ;-) this is at least easy to remember -->
 <div #ship class="ship">
 
@@ -12,11 +9,11 @@
              [style.min-width]="viewModel.viewportSize.width + 'px'"
              [style.min-height]="viewModel.viewportSize.height + 'px'"
         >
-            <!-- TODO DST: it is not clear if the trackBy works with this JSON style index... needed at all here? since the number of tiles does not change, this must be investigated further -->
             <matrix-view-tile-renderer #scrollableTileRenderers
                                        *ngFor="let tile of viewModel.scrollableTiles"
-                                       [cellTemplate]="cellTemplate ? cellTemplate : defaultCellTemplate"
+                                       [cellDirective]="cellDirective"
                                        [tile]="tile"
+                                       [cellStyle]="cellDirective.style"
                                        [style.top]="tile.position.top + 'px'"
                                        [style.left]="tile.position.left + 'px'"
                                        [style.width]="tile.size.width + 'px'"
@@ -41,7 +38,7 @@
         >
             <matrix-view-tile-renderer #fixedLeftTileRenderers
                                        *ngFor="let tile of viewModel.fixedLeftTiles"
-                                       [cellTemplate]="fixedLeftCellTemplate ? fixedLeftCellTemplate : (cellTemplate ? cellTemplate : defaultCellTemplate)"
+                                       [cellDirective]="fixedLeftCellDirective ? fixedLeftCellDirective : (fixedCellDirective ? fixedCellDirective : cellDirective)"
                                        [tile]="tile"
                                        [style.top]="tile.position.top + 'px'"
                                        [style.left]="tile.position.left + 'px'"
@@ -67,7 +64,7 @@
         >
             <matrix-view-tile-renderer #fixedBottomTileRenderers
                                        *ngFor="let tile of viewModel.fixedBottomTiles"
-                                       [cellTemplate]="fixedBottomCellTemplate ? fixedBottomCellTemplate : (cellTemplate ? cellTemplate : defaultCellTemplate)"
+                                       [cellDirective]="fixedBottomCellDirective ? fixedBottomCellDirective : (fixedCellDirective ? fixedCellDirective : cellDirective)"
                                        [tile]="tile"
                                        [style.top]="tile.position.top + 'px'"
                                        [style.left]="tile.position.left + 'px'"
@@ -91,7 +88,7 @@
         >
             <matrix-view-tile-renderer #fixedTopTileRenderers
                                        *ngFor="let tile of viewModel.fixedTopTiles"
-                                       [cellTemplate]="fixedTopCellTemplate ? fixedTopCellTemplate : (cellTemplate ? cellTemplate : defaultCellTemplate)"
+                                       [cellDirective]="fixedTopCellDirective ? fixedTopCellDirective : (fixedCellDirective ? fixedCellDirective : cellDirective)"
                                        [tile]="tile"
                                        [style.top]="tile.position.top + 'px'"
                                        [style.left]="tile.position.left + 'px'"
@@ -117,7 +114,7 @@
         >
             <matrix-view-tile-renderer #fixedRightTileRenderers
                                        *ngFor="let tile of viewModel.fixedRightTiles"
-                                       [cellTemplate]="fixedRightCellTemplate ? fixedRightCellTemplate : (cellTemplate ? cellTemplate : defaultCellTemplate)"
+                                       [cellDirective]="fixedRightCellDirective ? fixedRightCellDirective : (fixedCellDirective ? fixedCellDirective : cellDirective)"
                                        [tile]="tile"
                                        [style.top]="tile.position.top + 'px'"
                                        [style.left]="tile.position.left + 'px'"
@@ -129,38 +126,42 @@
     </div>
     <div *ngIf="viewModel.showFixedCorners.topRight"
          #fixedTopRight class="fixed fixed-top-right"
+         [ngStyle]="fixedTopRightStyle"
          [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, 0, 0)'"
          [style.height]="viewModel.fixedTopHeight  + 'px'"
          [style.width]="viewModel.fixedRightWidth + 'px'"
     >
         <ng-container
-            *ngTemplateOutlet="fixedTopRightTemplate ? fixedTopRightTemplate : fixedCornerTemplate"></ng-container>
+            *ngTemplateOutlet="fixedTopRightTemplate"></ng-container>
     </div>
     <div *ngIf="viewModel.showFixedCorners.bottomRight"
          #fixedBottomRight class="fixed fixed-bottom-right"
+         [ngStyle]="fixedBottomRightStyle"
          [style.transform]="'translate3d(' + viewModel.fixedRightOffset + 'px, ' + viewModel.fixedBottomOffset + 'px, 0)'"
          [style.width]="viewModel.fixedRightWidth + 'px'"
          [style.height]="viewModel.fixedBottomHeight  + 'px'"
     >
         <ng-container
-            *ngTemplateOutlet="fixedBottomRightTemplate ? fixedBottomRightTemplate : fixedCornerTemplate"></ng-container>
+            *ngTemplateOutlet="fixedBottomRightTemplate"></ng-container>
     </div>
     <div *ngIf="viewModel.showFixedCorners.bottomLeft"
          #fixedBottomLeft class="fixed fixed-bottom-left"
+         [ngStyle]="fixedBottomLeftStyle"
          [style.transform]="'translate3d(0, ' + viewModel.fixedBottomOffset + 'px, 0)'"
          [style.height]="viewModel.fixedBottomHeight  + 'px'"
          [style.width]="viewModel.fixedLeftWidth + 'px'"
     >
         <ng-container
-            *ngTemplateOutlet="fixedBottomLeftTemplate ? fixedBottomLeftTemplate : fixedCornerTemplate"></ng-container>
+            *ngTemplateOutlet="fixedBottomLeftTemplate"></ng-container>
     </div>
     <div *ngIf="viewModel.showFixedCorners.topLeft"
          #fixedTopLeft class="fixed fixed-top-left"
+         [ngStyle]="fixedTopLeftStyle"
          [style.height]="viewModel.fixedTopHeight  + 'px'"
          [style.width]="viewModel.fixedLeftWidth + 'px'"
     >
         <ng-container
-            *ngTemplateOutlet="fixedTopLeftTemplate ? fixedTopLeftTemplate : fixedCornerTemplate"></ng-container>
+            *ngTemplateOutlet="fixedTopLeftTemplate"></ng-container>
     </div>
     <!-- END: fixed areas -->
 </div>
