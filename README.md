@@ -76,7 +76,8 @@ in the following example.
 There is no special support for rendering a grid. This can be simply done via styling the cells.
 The following example shows, how to style the cells:
 ```html
-<ng-container *matrixViewCell="let cellValue haveStyle {'border-bottom': '1px solid black'; 'border-right': '1px solid black'}">
+<ng-container *matrixViewCell="let cellValue haveStyle {'border-bottom': '1px solid black', 
+                                                        'border-right': '1px solid black'}">
     {{cellValue}}
 </ng-container>
 ```

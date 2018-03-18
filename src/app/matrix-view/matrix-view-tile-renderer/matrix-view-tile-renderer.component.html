@@ -15,6 +15,11 @@
         [style.width]="cell.size.width + 'px'"
     >
         <ng-container
-            *ngTemplateOutlet="template; context: {$implicit: cell.value, index:cell.index, position: cell.position, size: cell.size}"></ng-container>
+            *ngTemplateOutlet="template;
+                                context: {$implicit: cell.value,
+                                          index:cell.index,
+                                          position: cell.position,
+                                          size: cell.size}">
+        </ng-container>
     </div>
 </ng-container>
