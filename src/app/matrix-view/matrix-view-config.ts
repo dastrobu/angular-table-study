@@ -1,6 +1,6 @@
 import {Log, LogLevel} from './log';
 import {BoxCorners, BoxSides, BoxSize} from './utils';
-import {DefaultTileRenderStrategy, TileRenderStrategy} from './matrix-view-tile-renderer/tile-render-strategy';
+import {DefaultTileRenderStrategy, TileRenderStrategy} from './tile-renderer/tile-render-strategy';
 
 export const defaults = {
     logLevel: 'off' as LogLevel,

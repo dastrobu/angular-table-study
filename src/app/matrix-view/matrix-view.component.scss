@@ -17,12 +17,11 @@ div {
     height: 100%;
 }
 
-.container {
+.scrollable {
     // make sure the container fills the whole ship
-    display: block;
-    position: relative;
     width: 100%;
     height: 100%;
+    position: relative;
     // TODO DST: make configurable
     overflow: scroll;
 }
@@ -65,33 +64,5 @@ div {
 
 .fixed-bottom-left {
     background-color: #ffc26a;
-}
-
-// the canvas is the area all scrollable content is drawn to
-.canvas {
-    display: block;
-    position: relative;
-
-    background-color: #e0f0fa;
-}
-
-.canvas-top {
-    display: block;
-    position: relative;
-}
-
-.canvas-right {
-    display: block;
-    position: relative;
-}
-
-.canvas-left {
-    display: block;
-    position: relative;
-}
-
-.canvas-bottom {
-    display: block;
-    position: relative;
 }
 

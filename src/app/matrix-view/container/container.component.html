@@ -1,0 +1,18 @@
+<div #canvas class="canvas"
+     [style.width]="canvasSize.width + 'px'"
+     [style.height]="canvasSize.height + 'px'"
+     [style.min-width]="viewportSize.width + 'px'"
+     [style.min-height]="viewportSize.height + 'px'"
+>
+    <matrix-view-tile-renderer *ngFor="let tile of tiles"
+                               [cellDirective]="cellDirective"
+                               [config]="config"
+                               [tile]="tile"
+                               [style.top]="tile.position.top + 'px'"
+                               [style.left]="tile.position.left + 'px'"
+                               [style.width]="tile.size.width + 'px'"
+                               [style.height]="tile.size.height + 'px'"
+    >
+    </matrix-view-tile-renderer>
+</div>
+

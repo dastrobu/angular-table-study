@@ -1,17 +1,16 @@
-import {Cell} from '../matrix-view-view-model';
 import {BoxSize, Point2D, RowCol} from '../utils';
 
 /** context definition for cell templates */
 export interface CellTemplateContext<CellValueType> {
-    /** @see Cell#value */
+    /** @see MatrixViewCell#value */
     readonly $implicit: CellValueType;
 
-    /** @see Cell#index */
+    /** @see MatrixViewCell#index */
     readonly index: RowCol<number>;
 
-    /** @see Cell#position */
+    /** @see MatrixViewCell#position */
     readonly position: Point2D;
 
-    /** @see Cell#size */
+    /** @see MatrixViewCell#size */
     readonly size: BoxSize;
 }

@@ -1,0 +1,18 @@
+<!-- default cell template simply prints the value-->
+<ng-template #defaultTemplate let-cell="cell">{{cell.value}}</ng-template>
+
+<!-- ng-contianer is perfect here, since an additional cluttering of the DOM is avoided -->
+<ng-container *ngIf="tile.visible">
+    <!-- it seems that top and left performs better than translate3d -->
+    <!--[style.transform3d]="'translate(' + cell.position.left + 'px, ' + cell.position.top + 'px)'"-->
+    <matrix-view-cell [ngStyle]="style"
+                      *ngFor="let cell of tile.cells"
+                      [template]="template"
+                      [cell]="cell"
+                      [style.left]="cell.position.left - tile.position.left + 'px'"
+                      [style.top]="cell.position.top - tile.position.top + 'px'"
+                      [style.height]="cell.size.height + 'px'"
+                      [style.width]="cell.size.width + 'px'"
+    >
+    </matrix-view-cell>
+</ng-container>

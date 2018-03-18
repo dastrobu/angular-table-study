@@ -50,6 +50,12 @@ export interface RowsCols<T> {
     readonly cols: T;
 }
 
+/** interface for specifying a slice */
+export interface Slice {
+    start: number;
+    end: number;
+}
+
 /** interface to refer to all objects, that need to be stored for rows and cols. */
 export interface RowCol<T> {
     readonly row: T;

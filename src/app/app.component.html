@@ -65,7 +65,13 @@
             <ng-container *ngSwitchCase="2"><input type="text" class="input-text"></ng-container>
             <ng-container *ngSwitchCase="3"><input type="button" [value]="cellValue"></ng-container>
             <ng-container *ngSwitchCase="4"><input type="number" class="input-text" [value]="cellValue"></ng-container>
-            <ng-container *ngSwitchDefault>{{cellValue}}</ng-container>
+            <!--<ng-container *ngSwitchDefault>{{cellValue}}</ng-container>-->
+            <ng-container *ngSwitchDefault>
+                <div (mouseover)="mouseover(index)" (mouseout)="mouseout(index)">
+                    <!--[class.hover]="hover[index]">-->
+                    {{cellValue}}
+                </div>
+            </ng-container>
         </ng-container>
     </ng-container>
 </matrix-view>
