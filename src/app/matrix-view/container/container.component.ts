@@ -3,7 +3,6 @@ import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
 import {CellDirective} from '../directives/cell-directive';
 import {BoxSize, flatten, Point2D, RowCol, RowsCols, Slice} from '../utils';
-import {isInternetExplorer, scrollbarWidth} from '../browser';
 import {Cell} from '../cell/cell';
 import {Tile} from '../tile/tile';
 import * as _ from 'lodash';
@@ -46,6 +45,9 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     }
 
     private _canvasSize: BoxSize;
+
+    @Input()
+    public viewportSize: BoxSize;
 
     get canvasSize(): BoxSize {
         return this._canvasSize;
@@ -99,57 +101,6 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         return this._tiles;
     }
 
-    /**
-     * size of the viewport, i.e. the size of the container minus scrollbars, if any.
-     */
-    public get viewportSize(): BoxSize {
-        const containerSize = this.size;
-
-        if (!this.scrollable) {
-            return containerSize;
-        }
-
-        let width: number;
-        let height: number;
-        // on IE the scrollbar width must not be subtracted, on Chrome and Firefox this is not required.
-        if (isInternetExplorer) {
-            width = containerSize.width;
-            height = containerSize.height;
-        } else {
-            width = containerSize.width - scrollbarWidth;
-            height = containerSize.height - scrollbarWidth;
-        }
-        const viewportSize = {width: width, height: height};
-
-        this.log.trace(() => `get viewportSize() => ${JSON.stringify(viewportSize)}`);
-        return viewportSize;
-    }
-
-    /**
-     * size of the container (including scrollbars)
-     */
-    private get size(): BoxSize {
-        const computedStyle = getComputedStyle(this.elementRef.nativeElement);
-        let width = Number(computedStyle.width.replace('px', ''));
-        let height = Number(computedStyle.height.replace('px', ''));
-        if (this.scrollable) {
-            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
-            if (!isInternetExplorer) {
-                width += scrollbarWidth;
-                height += scrollbarWidth;
-            }
-        }
-        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
-    }
-
-    private get scrollable(): boolean {
-        const computedStyle = getComputedStyle(this.elementRef.nativeElement);
-        const scrollable = computedStyle.overflow === 'scroll';
-        this.log.trace(() => `get scrollable() => ${scrollable}`);
-        return scrollable;
-    }
-
     ngOnInit() {
         this.log.trace(() => `ngOnInit()`);
     }
@@ -163,10 +114,13 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
             (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
             (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
+            (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
             (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
         ) {
+            // TODO: this is also wrong, it must be done for the current scroll position
             this.scrollCanvasTo({left: 0, top: 0});
             this.updateTiles();
+            // TODO: this causes setting the scroll position in the fixed areas back, which is not what we want - we need to account for the current scroll of the scrollable container
             this.updateTileVisibility({left: 0, top: 0});
         }
     }
@@ -188,7 +142,13 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
 
         // TODO: validate this...
         // TODO: check if the reduced viewport size for the fixed areas works correctly...
-        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy(scrollPosition, this._config.tileSize, this.canvasSize, this.viewportSize);
+        // TODO: optimize, recomputing the viewport size every time is overkill
+        const viewportSize = this.viewportSize;
+        const tileSize = this._config.tileSize;
+        const canvasSize = this.canvasSize;
+
+        const visibleTiles: ReadonlyArray<RowCol<number>> =
+            this.config.tileRenderStrategy(scrollPosition, tileSize, canvasSize, viewportSize);
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
 
         // map to row major flat indices
@@ -240,7 +200,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     }
 
     private updateTiles() {
-        this.log.trace(() => `updateTiles()`);
+        this.log.debug(() => `updateTiles()`);
         let cells = this._cells;
         const cellsSlice = this._cellsSlice;
         const rowSlice = cellsSlice.rows;
@@ -250,7 +210,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     }
 
     private createTiles(cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>): Tile<CellValueType>[][] {
-        this.log.debug(() => `createTiles(${JSON.stringify(cells, null, 2)})`);
+        this.log.trace(() => `createTiles(${JSON.stringify(cells, null, 2)})`);
         const tileSize = this.config.tileSize;
         const tileWidth = tileSize.width;
         const tileHeight = tileSize.height;
