@@ -127,12 +127,12 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         }));
     }
 
-    private _fixed: BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice> }>;
+    private _fixed: BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }>;
 
     /** the model of the matrix. */
     private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
 
-    get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice> }> {
+    get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }> {
         this.log.trace(() => `get fixed() => ${JSON.stringify(this._fixed, null, 2)}`);
         return this._fixed;
     }
@@ -346,6 +346,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         const model = this._model.value;
         const dim = model.dimension;
         const showFixed = this._config.value.showFixed;
+        const canvasSize = this._model.value.canvasSize;
         const viewportSize = this.scrollableContainer.viewportSize;
         const colModel = model.colModel;
         const rowModel = model.rowModel;
@@ -360,9 +361,11 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                 // since fixed right is on top, no rows are filtered
                 rows: {start: 0, end: dim.rows},
                 cols: {start: dim.cols - Math.min(showFixed.right, dim.cols), end: dim.cols},
-            }
+            },
+            scrollOffset: {top: 0, left: 0}
         };
         right.offset.left = viewportSize.width - right.size.width;
+        right.scrollOffset.left = canvasSize.width - right.size.width;
 
         const top = {
             size: {
@@ -374,8 +377,8 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                 rows: {start: 0, end: Math.min(showFixed.top, dim.rows)},
                 // filter all cols that belong to fixed right, since fixed right is on top
                 cols: {start: 0, end: right.slice.cols.start},
-            }
-
+            },
+            scrollOffset: {top: 0, left: 0}
         };
 
         const bottom = {
@@ -388,8 +391,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                 rows: {start: dim.rows - Math.min(showFixed.bottom, dim.rows), end: dim.rows},
                 // fixed bottom is above fixed left, so filter all cols, that belong to fixed right
                 cols: {start: 0, end: right.slice.cols.start},
-            }
+            },
+            scrollOffset: {top: 0, left: 0}
         };
+        bottom.scrollOffset.top = canvasSize.height - bottom.size.height;
         bottom.offset.top = viewportSize.height - bottom.size.height;
 
         const left = {
@@ -402,7 +407,8 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                 // fixed left is lowest, so filter all rows, that belong to fixed top or bottom
                 rows: {start: top.slice.rows.end, end: bottom.slice.rows.start},
                 cols: {start: 0, end: Math.min(showFixed.left, dim.cols)},
-            }
+            },
+            scrollOffset: {top: 0, left: 0}
         };
         this._fixed = {top: top, right: right, bottom: bottom, left: left};
 
@@ -445,31 +451,23 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
         const fixedTopContainer = this.fixedTopContainer;
         if (fixedTopContainer) {
-            fixedTopContainer.scrollCanvasTo({top: 0, left: -scrollLeft});
+            fixedTopContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
             fixedTopContainer.updateTileVisibility({left: scrollLeft, top: 0});
 
         }
         const fixedRightContainer = this.fixedRightContainer;
         if (this.fixedRightContainer) {
-            fixedRightContainer.scrollCanvasTo({top: -scrollTop, left: 0});
-            fixedRightContainer.updateTileVisibility(
-                {
-                    left: canvasSize.width <= viewportSize.width ? 0 : canvasSize.width - viewportSize.width,
-                    top: scrollTop,
-                });
+            fixedRightContainer.scrollCanvasTo({left: 0, top: -scrollTop});
+            fixedRightContainer.updateTileVisibility({left: 0, top: scrollTop});
         }
         const fixedBottomContainer = this.fixedBottomContainer;
         if (fixedBottomContainer) {
-            fixedBottomContainer.scrollCanvasTo({top: 0, left: -scrollLeft});
-            fixedBottomContainer.updateTileVisibility(
-                {
-                    left: scrollLeft,
-                    top: canvasSize.height <= viewportSize.height ? 0 : canvasSize.height - viewportSize.height
-                });
+            fixedBottomContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
+            fixedBottomContainer.updateTileVisibility({left: scrollLeft, top: 0});
         }
         const fixedLeftContainer = this.fixedLeftContainer;
         if (this.fixedLeftContainer) {
-            fixedLeftContainer.scrollCanvasTo({top: -scrollTop, left: 0});
+            fixedLeftContainer.scrollCanvasTo({left: 0, top: -scrollTop});
             fixedLeftContainer.updateTileVisibility({left: 0, top: scrollTop});
         }
         // use the internal state of scrollableTiles, since recomputing them is unnecessary here and

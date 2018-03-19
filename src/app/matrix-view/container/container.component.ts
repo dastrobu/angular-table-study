@@ -27,8 +27,6 @@ import {Tile} from '../tile/tile';
 })
 // TODO: merge everything into one input?
 export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoCheck, AfterContentChecked, OnDestroy {
-    // TODO DST: this will not be the correct scroll position for all areas
-    private scrollPosition: Point2D = {left: 0, top: 0};
     private readonly log: Log = new Log(this.constructor.name + ':');
 
     constructor(public elementRef: ElementRef) {
@@ -99,6 +97,18 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
 
     private _tiles: ReadonlyArray<Tile<CellValueType>> = [];
 
+    private _scrollOffset: Point2D = {left: 0, top: 0};
+
+    @Input()
+    set scrollOffset(value: Point2D) {
+        this.log.trace(() => `scrollOffset(${value})`);
+        // update scroll if scroll offset changes
+        if (this._scrollOffset.left !== value.left || this._scrollOffset.top !== value.top) {
+            this._scrollOffset = value;
+            this.scrollCanvasTo({left: 0, top: 0});
+        }
+    }
+
     get tiles(): ReadonlyArray<Tile<CellValueType>> {
         this.log.trace(() => `get tiles`);
         return this._tiles;
@@ -161,11 +171,13 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
 
     ngDoCheck() {
         this.log.trace(() => `ngDoCheck()`);
+
         // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
         // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
         // All tiles are created in invisible state, visibility must be computed later.
+        // TODO: move, do not recompute on every check
         this.updateTiles();
-        this.updateTileVisibility();
+        this.updateTileVisibility({left: 0, top: 0});
     }
 
     ngOnChanges(changes: SimpleChanges): void {
@@ -188,14 +200,12 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
      * @param scrollPosition scroll position of the viewport.
      * @return {Tile[]} array of tiles, where the {@link Tile#visible visible} property was updated.
      */
-    public updateTileVisibility(scrollPosition?: Point2D): void {
+    public updateTileVisibility(scrollPosition: Point2D): void {
         this.log.trace(() => `updateTileVisibility(${JSON.stringify(scrollPosition)})`);
-        if (!scrollPosition) {
-            scrollPosition = this.scrollPosition;
-        } else {
-            this.scrollPosition = scrollPosition;
-        }
 
+        // add offset (non zero for fixed areas)
+        const scrollOffset = this._scrollOffset;
+        scrollPosition = {left: scrollOffset.left + scrollPosition.left, top: scrollOffset.top + scrollPosition.top};
 
         const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles(scrollPosition);
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
@@ -237,6 +247,8 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
     /** update the scroll position of the container */
     public scrollCanvasTo(scrollPosition: Point2D): void {
         this.log.trace(() => `scrollCanvasTo(${JSON.stringify(scrollPosition)}`);
+        const scrollOffset = this._scrollOffset;
+        scrollPosition = {left: scrollPosition.left - scrollOffset.left, top: scrollPosition.top - scrollOffset.top};
         const canvas = this.canvas;
         if (!canvas) {
             return;
