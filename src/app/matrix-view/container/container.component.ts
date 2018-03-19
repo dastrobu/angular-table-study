@@ -1,16 +1,4 @@
-import {
-    AfterContentChecked,
-    ChangeDetectionStrategy,
-    Component,
-    DoCheck,
-    ElementRef,
-    Input,
-    OnChanges,
-    OnDestroy,
-    OnInit,
-    SimpleChanges,
-    ViewChild
-} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
 import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
 import {CellDirective} from '../directives/cell-directive';
@@ -18,6 +6,7 @@ import {BoxSize, flatten, Point2D, RowCol, RowsCols, Slice} from '../utils';
 import {isInternetExplorer, scrollbarWidth} from '../browser';
 import {Cell} from '../cell/cell';
 import {Tile} from '../tile/tile';
+import * as _ from 'lodash';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -26,7 +15,7 @@ import {Tile} from '../tile/tile';
     styleUrls: ['./container.component.scss']
 })
 // TODO: merge everything into one input?
-export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoCheck, AfterContentChecked, OnDestroy {
+export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     private readonly log: Log = new Log(this.constructor.name + ':');
 
     constructor(public elementRef: ElementRef) {
@@ -102,11 +91,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
     @Input()
     set scrollOffset(value: Point2D) {
         this.log.trace(() => `scrollOffset(${value})`);
-        // update scroll if scroll offset changes
-        if (this._scrollOffset.left !== value.left || this._scrollOffset.top !== value.top) {
-            this._scrollOffset = value;
-            this.scrollCanvasTo({left: 0, top: 0});
-        }
+        this._scrollOffset = value;
     }
 
     get tiles(): ReadonlyArray<Tile<CellValueType>> {
@@ -169,27 +154,21 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
         this.log.trace(() => `ngOnInit()`);
     }
 
-    ngDoCheck() {
-        this.log.trace(() => `ngDoCheck()`);
+    ngOnChanges(changes: SimpleChanges): void {
+        this.log.debug(() => `ngOnChanges(...)`);
 
         // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
         // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
         // All tiles are created in invisible state, visibility must be computed later.
-        // TODO: move, do not recompute on every check
-        this.updateTiles();
-        this.updateTileVisibility({left: 0, top: 0});
-    }
-
-    ngOnChanges(changes: SimpleChanges): void {
-        this.log.debug(() => `ngOnChanges(...)`);
-    }
-
-    ngAfterContentChecked(): void {
-        this.log.trace(() => `ngAfterContentChecked()`);
-    }
-
-    ngOnDestroy(): void {
-        this.log.trace(() => `ngOnDestroy()`);
+        if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
+            (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
+            (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
+            (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
+        ) {
+            this.scrollCanvasTo({left: 0, top: 0});
+            this.updateTiles();
+            this.updateTileVisibility({left: 0, top: 0});
+        }
     }
 
     /**
@@ -207,7 +186,9 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoC
         const scrollOffset = this._scrollOffset;
         scrollPosition = {left: scrollOffset.left + scrollPosition.left, top: scrollOffset.top + scrollPosition.top};
 
-        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles(scrollPosition);
+        // TODO: validate this...
+        // TODO: check if the reduced viewport size for the fixed areas works correctly...
+        const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy(scrollPosition, this._config.tileSize, this.canvasSize, this.viewportSize);
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
 
         // map to row major flat indices

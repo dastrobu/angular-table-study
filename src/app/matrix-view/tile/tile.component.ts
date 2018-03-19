@@ -1,14 +1,11 @@
 import {
-    AfterContentChecked,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
     DoCheck,
     Input,
-    OnChanges,
     OnDestroy,
     OnInit,
-    SimpleChanges,
     TemplateRef,
     ViewChild
 } from '@angular/core';
@@ -24,7 +21,7 @@ import {Log} from '../log';
     templateUrl: './tile.component.html',
     styleUrls: ['./tile.component.scss']
 })
-export class TileComponent<CellValueType> implements OnInit, OnChanges, DoCheck, AfterContentChecked, OnDestroy {
+export class TileComponent<CellValueType> implements OnInit, DoCheck, OnDestroy {
     private readonly log: Log = new Log(this.constructor.name + ':');
     private _tile: Tile<CellValueType>;
 
@@ -80,6 +77,7 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, DoCheck,
     }
 
     public detectChanges() {
+        this.log.trace(() => `detectChanges()`);
         this.changeDetectionRef.detectChanges();
     }
 
@@ -104,28 +102,8 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, DoCheck,
         }
     }
 
-    ngOnChanges(changes: SimpleChanges): void {
-        this.log.trace(() => `ngOnChanges(...)`);
-        // attach this as renderer
-        const tile = changes.tile;
-        if (tile) {
-            const currentTile: Tile<CellValueType> = tile.currentValue;
-            if (currentTile) {
-                this.log.trace(() => `currentTile(${JSON.stringify(currentTile.index)})`);
-            }
-            const previousTile: Tile<CellValueType> = tile.previousValue;
-            if (previousTile) {
-                this.log.trace(() => `previousTile(${JSON.stringify(previousTile.index)})`);
-            }
-        }
-    }
-
     ngDoCheck() {
         this.log.trace(() => `ngDoCheck()`);
-    }
-
-    ngAfterContentChecked(): void {
-        this.log.trace(() => `ngAfterContentChecked()`);
     }
 
     ngOnDestroy(): void {

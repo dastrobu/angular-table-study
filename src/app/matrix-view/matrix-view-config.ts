@@ -1,6 +1,6 @@
 import {Log, LogLevel} from './log';
 import {BoxCorners, BoxSides, BoxSize} from './utils';
-import {DefaultTileRenderStrategy, TileRenderStrategy} from './tile/tile-render-strategy';
+import {defaultTileRenderStrategy, TileRenderStrategy} from './tile/tile-render-strategy';
 
 export const defaults = {
     logLevel: 'off' as LogLevel,
@@ -60,7 +60,7 @@ export class Config implements MatrixViewConfig {
         bottomRight: false,
     };
     private readonly log: Log = new Log(this.constructor.name + ':');
-    tileRenderStrategy: TileRenderStrategy = new DefaultTileRenderStrategy();
+    tileRenderStrategy: TileRenderStrategy = defaultTileRenderStrategy;
 
     /** copy constructor, which extracts all information and stores it */
     constructor(config?: MatrixViewConfig) {
@@ -84,9 +84,6 @@ export class Config implements MatrixViewConfig {
             this.tileRenderStrategy = config.tileRenderStrategy;
             this.log.info(() => `did set tileRenderStrategy: ${this.tileRenderStrategy}`);
         }
-
-        // pass tile size to renderer strategy
-        this.tileRenderStrategy.tileSize = this.tileSize;
 
         // determine fixed config
         if (config.showFixed !== undefined && config.showFixed !== null) {
@@ -114,7 +111,7 @@ export class Config implements MatrixViewConfig {
                 topLeft: Boolean(this.showFixed.top && this.showFixed.left),
                 topRight: Boolean(this.showFixed.top && this.showFixed.right),
                 bottomRight: Boolean(this.showFixed.bottom && this.showFixed.right),
-                bottomLeft: Boolean(this.showFixed.bottom && this.showFixed.right),
+                bottomLeft: Boolean(this.showFixed.bottom && this.showFixed.left),
             };
             this.log.info(() => {
                 return `did set automatically config.showFixedCorners: ${JSON.stringify(this.showFixedCorners)}`;

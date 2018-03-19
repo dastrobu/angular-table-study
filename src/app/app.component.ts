@@ -76,10 +76,10 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(2);
-        this.rowCountFormControl.setValue(2);
-        this.fixedTopFormControl.setValue(0);
-        this.fixedBottomFormControl.setValue(1);
+        this.colCountFormControl.setValue(10);
+        this.rowCountFormControl.setValue(10);
+        this.fixedTopFormControl.setValue(1);
+        this.fixedBottomFormControl.setValue(0);
         this.fixedRightFormControl.setValue(0);
         this.fixedLeftFormControl.setValue(0);
         this.logLevelFormControl.setValue('trace');

@@ -150,9 +150,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this.subscriptions.push(configObservable.subscribe(config => {
             this._config.next(new Config(config));
 
-            // TODO: move to a better place
-            this._config.value.tileRenderStrategy.viewportSize = this.scrollableContainer.viewportSize;
-
             this.changeDetectorRef.markForCheck();
         }));
     }
@@ -180,8 +177,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                     rowHeights: ${this._model.value.rowModel.rowHeights}
                     rowPositions: ${this._model.value.rowModel.rowPositions}`);
 
-            // TODO: move to a better place
-            this._config.value.tileRenderStrategy.canvasSize = this._model.value.canvasSize;
             this.changeDetectorRef.markForCheck();
         }));
     }
@@ -444,10 +439,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
 
         // use the cached values here, they should not change after the model (or config) was updated.
-        const canvasSize = this._model.value.canvasSize;
         const scrollableContainer = this.scrollableContainer;
-        // TODO DST: it is questionable, if it is a good idea to access the child component, before it is completely initialized...
-        const viewportSize = scrollableContainer.viewportSize;
 
         const fixedTopContainer = this.fixedTopContainer;
         if (fixedTopContainer) {
