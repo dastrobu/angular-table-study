@@ -36,6 +36,7 @@ import {MatrixViewFixedCornerDirective} from './directives/matrix-view-fixed-cor
 import {Cell} from './cell/cell';
 import {BoxSides, BoxSize, Point2D, RowsCols, Slice} from './utils';
 import {ContainerComponent} from './container/container.component';
+import {isInternetExplorer, scrollbarWidth} from './browser';
 
 // TODO: use NgOnChanges for config and model changes?
 // TODO: see https://angular.io/guide/component-interaction#intercept-input-property-changes-with-ngonchanges
@@ -133,7 +134,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
 
     get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }> {
-        this.log.trace(() => `get fixed() => ${JSON.stringify(this._fixed, null, 2)}`);
         return this._fixed;
     }
 
@@ -149,7 +149,8 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         // TODO DST: we mus explicitly store the observable and cleanup the subscription if a new observable is passed
         this.subscriptions.push(configObservable.subscribe(config => {
             this._config.next(new Config(config));
-
+            // recompute fixed on changes
+            this.updateFixed();
             this.changeDetectorRef.markForCheck();
         }));
     }
@@ -176,7 +177,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                     colPositions: ${this._model.value.colModel.colPositions}
                     rowHeights: ${this._model.value.rowModel.rowHeights}
                     rowPositions: ${this._model.value.rowModel.rowPositions}`);
-
+            this.updateFixed();
             this.changeDetectorRef.markForCheck();
         }));
     }
@@ -321,9 +322,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     ngDoCheck() {
         this.log.trace(() => `ngDoCheck()`);
-        // recompute fixed on changes
-        // TODO DST: move this somewhere else, because the update is recomputed on every change check. Maybe to onChanges
-        this.updateFixed();
     }
 
     ngOnDestroy(): void {
@@ -336,13 +334,119 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this.subscriptions.forEach(subscription => subscription.unsubscribe());
     }
 
+    /**
+     * size of the viewport, i.e. the size of the container minus scrollbars, if any.
+     */
+    public get viewportSize(): BoxSize {
+        const containerSize = this.scrollableContainerSize;
+
+        if (!this.scrollable) {
+            return containerSize;
+        }
+
+        let width: number;
+        let height: number;
+        // on IE the scrollbar width must not be subtracted, on Chrome and Firefox this is not required.
+        if (isInternetExplorer) {
+            width = containerSize.width;
+            height = containerSize.height;
+        } else {
+            width = containerSize.width - scrollbarWidth;
+            height = containerSize.height - scrollbarWidth;
+        }
+        const viewportSize = {width: width, height: height};
+
+        this.log.trace(() => `get viewportSize() => ${JSON.stringify(viewportSize)}`);
+        return viewportSize;
+    }
+
+    /**
+     * update the visibility of tiles, depending on the scroll position
+     */
+    private updateTileVisibility() {
+        this.log.debug(() => `updateTileVisibility()`);
+        const scrollPosition = this.scrollPosition();
+        const scrollLeft = scrollPosition.left;
+        const scrollTop = scrollPosition.top;
+
+        // to synchronize scroll there are several options.
+        // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
+        //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
+        //    performance.
+        // 2. use scrollTo(scrollLeft, 0)
+        //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
+        // 3. use left = -scrollLeft px
+        //    This works in all Browsers and scrolling performance is the best one of all three options.
+        //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
+
+
+        // use the cached values here, they should not change after the model (or config) was updated.
+        const scrollableContainer = this.scrollableContainer;
+
+        // TODO: pass make the scroll positions available on init to the containers, e.g. via passing a lambda
+        const fixedTopContainer = this.fixedTopContainer;
+        if (fixedTopContainer) {
+            fixedTopContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
+            fixedTopContainer.updateTileVisibility({left: scrollLeft, top: 0});
+
+        }
+        const fixedRightContainer = this.fixedRightContainer;
+        if (fixedRightContainer) {
+            fixedRightContainer.scrollCanvasTo({left: 0, top: -scrollTop});
+            fixedRightContainer.updateTileVisibility({left: 0, top: scrollTop});
+        }
+        const fixedBottomContainer = this.fixedBottomContainer;
+        if (fixedBottomContainer) {
+            fixedBottomContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
+            fixedBottomContainer.updateTileVisibility({left: scrollLeft, top: 0});
+        }
+        const fixedLeftContainer = this.fixedLeftContainer;
+        if (fixedLeftContainer) {
+            fixedLeftContainer.scrollCanvasTo({left: 0, top: -scrollTop});
+            fixedLeftContainer.updateTileVisibility({left: 0, top: scrollTop});
+        }
+        // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
+        // too expensive.
+        scrollableContainer.updateTileVisibility(scrollPosition);
+    }
+
+    private scrollPosition() {
+        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
+        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
+    }
+
+    /**
+     * size of the container (including scrollbars)
+     */
+    private get scrollableContainerSize(): BoxSize {
+        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
+        let width = Number(computedStyle.width.replace('px', ''));
+        let height = Number(computedStyle.height.replace('px', ''));
+        if (this.scrollable) {
+            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
+            if (!isInternetExplorer) {
+                width += scrollbarWidth;
+                height += scrollbarWidth;
+            }
+        }
+        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
+        return {width: width, height: height};
+    }
+
+    private get scrollable(): boolean {
+        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
+        const scrollable = computedStyle.overflow === 'scroll';
+        this.log.trace(() => `get scrollable() => ${scrollable}`);
+        return scrollable;
+    }
+
     private updateFixed() {
         this.log.trace(() => `updateFixed()`);
         const model = this._model.value;
         const dim = model.dimension;
         const showFixed = this._config.value.showFixed;
         const canvasSize = this._model.value.canvasSize;
-        const viewportSize = this.scrollableContainer.viewportSize;
+        const viewportSize = this.viewportSize;
         const colModel = model.colModel;
         const rowModel = model.rowModel;
 
@@ -416,55 +520,5 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         };
     }
 
-    /**
-     * update the visibility of tiles, depending on the scroll position
-     */
-    private updateTileVisibility() {
-        this.log.debug(() => `updateTileVisibility()`);
-
-        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
-        const scrollPosition = {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
-        const scrollLeft = scrollPosition.left;
-        const scrollTop = scrollPosition.top;
-
-        // to synchronize scroll there are several options.
-        // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
-        //    This works well in Chrome, but not in IE und Firefox. The latter two browsers show a very bad
-        //    performance.
-        // 2. use scrollTo(scrollLeft, 0)
-        //    This works well in Chrome and and Firefox, IE ignores the scrollTo call completely.
-        // 3. use left = -scrollLeft px
-        //    This works in all Browsers and scrolling performance is the best one of all three options.
-        //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
-
-
-        // use the cached values here, they should not change after the model (or config) was updated.
-        const scrollableContainer = this.scrollableContainer;
-
-        const fixedTopContainer = this.fixedTopContainer;
-        if (fixedTopContainer) {
-            fixedTopContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
-            fixedTopContainer.updateTileVisibility({left: scrollLeft, top: 0});
-
-        }
-        const fixedRightContainer = this.fixedRightContainer;
-        if (this.fixedRightContainer) {
-            fixedRightContainer.scrollCanvasTo({left: 0, top: -scrollTop});
-            fixedRightContainer.updateTileVisibility({left: 0, top: scrollTop});
-        }
-        const fixedBottomContainer = this.fixedBottomContainer;
-        if (fixedBottomContainer) {
-            fixedBottomContainer.scrollCanvasTo({left: -scrollLeft, top: 0});
-            fixedBottomContainer.updateTileVisibility({left: scrollLeft, top: 0});
-        }
-        const fixedLeftContainer = this.fixedLeftContainer;
-        if (this.fixedLeftContainer) {
-            fixedLeftContainer.scrollCanvasTo({left: 0, top: -scrollTop});
-            fixedLeftContainer.updateTileVisibility({left: 0, top: scrollTop});
-        }
-        // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
-        // too expensive.
-        scrollableContainer.updateTileVisibility(scrollPosition);
-    }
 }
 
