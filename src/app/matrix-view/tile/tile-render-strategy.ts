@@ -10,13 +10,13 @@ export interface TileRenderStrategy {
 
     /**
      * current canvas size
-     * @see MatrixViewViewModel#canvasSize canvasSize
+     * @see ContainerComponent#canvasSize canvasSize
      */
     canvasSize: BoxSize;
 
     /**
      * current viewport size
-     * @see MatrixViewViewModel#viewportSize viewportSize
+     * @see ContainerComponent#viewportSize viewportSize
      */
     viewportSize: BoxSize;
 

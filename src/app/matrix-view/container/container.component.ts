@@ -1,11 +1,23 @@
-import {ChangeDetectionStrategy, Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
+import {
+    AfterContentChecked,
+    ChangeDetectionStrategy,
+    Component,
+    DoCheck,
+    ElementRef,
+    Input,
+    OnChanges,
+    OnDestroy,
+    OnInit,
+    SimpleChanges,
+    ViewChild
+} from '@angular/core';
 import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
 import {CellDirective} from '../directives/cell-directive';
 import {BoxSize, flatten, Point2D, RowCol, RowsCols, Slice} from '../utils';
 import {isInternetExplorer, scrollbarWidth} from '../browser';
-import {MatrixViewCell} from '../matrix-view-cell/matrix-view-cell.component';
-import {Tile} from '../tile-renderer/tile';
+import {Cell} from '../cell/cell';
+import {Tile} from '../tile/tile';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -14,39 +26,82 @@ import {Tile} from '../tile-renderer/tile';
     styleUrls: ['./container.component.scss']
 })
 // TODO: merge everything into one input?
-export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
-    @Input()
-    public cells: ReadonlyArray<ReadonlyArray<MatrixViewCell<CellValueType>>> = [];
-    @Input()
-    cellDirective: CellDirective<CellValueType>;
-    @Input()
-    canvasSize: BoxSize;
-    @Input()
-    cellsSlice: RowsCols<Slice>;
-    @ViewChild('canvas')
-    public canvas: ElementRef;
+export class ContainerComponent<CellValueType> implements OnInit, OnChanges, DoCheck, AfterContentChecked, OnDestroy {
+    // TODO DST: this will not be the correct scroll position for all areas
+    private scrollPosition: Point2D = {left: 0, top: 0};
     private readonly log: Log = new Log(this.constructor.name + ':');
 
     constructor(public elementRef: ElementRef) {
     }
 
-    private _tiles: ReadonlyArray<Tile<CellValueType>> = [];
+    private _cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> = [];
 
-    get tiles(): ReadonlyArray<Tile<CellValueType>> {
-        this.log.trace(() => `tiles`);
-        return flatten(this.createTiles(this.cells));
+    get cells(): ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> {
+        return this._cells;
     }
+
+    @Input()
+    set cells(value: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>) {
+        this.log.trace(() => `set cells(${JSON.stringify(value)})`);
+        this._cells = value;
+    }
+
+    private _cellDirective: CellDirective<CellValueType>;
+
+    get cellDirective(): CellDirective<CellValueType> {
+        return this._cellDirective;
+    }
+
+    @Input()
+    set cellDirective(value: CellDirective<CellValueType>) {
+        this.log.trace(() => `set cellDirective(${value})`);
+        this._cellDirective = value;
+    }
+
+    private _canvasSize: BoxSize;
+
+    get canvasSize(): BoxSize {
+        return this._canvasSize;
+    }
+
+    @Input()
+    set canvasSize(value: BoxSize) {
+        this.log.trace(() => `set canvasSize(${JSON.stringify(value)})`);
+        this._canvasSize = value;
+    }
+
+    private _cellsSlice: RowsCols<Slice>;
+
+    @ViewChild('canvas')
+    public canvas: ElementRef;
 
     private _config: MatrixViewConfig;
-
-    get config(): MatrixViewConfig {
-        return this._config;
-    }
 
     @Input()
     set config(value: MatrixViewConfig) {
         this._config = value;
         this.log.level = this._config.logLevel;
+    }
+
+    get cellsSlice(): RowsCols<Slice> {
+        return this._cellsSlice;
+    }
+
+    @Input()
+    set cellsSlice(value: RowsCols<Slice>) {
+        this.log.trace(() => `set cellsSlice(${JSON.stringify(value)})`);
+        this._cellsSlice = value;
+    }
+
+    get config(): MatrixViewConfig {
+        return this._config;
+    }
+
+    private _tiles: ReadonlyArray<Tile<CellValueType>> = [];
+
+    get tiles(): ReadonlyArray<Tile<CellValueType>> {
+        this.log.trace(() => `get tiles`);
+        return this._tiles;
     }
 
     /**
@@ -71,7 +126,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         }
         const viewportSize = {width: width, height: height};
 
-        this.log.trace(() => `viewportSize => ${JSON.stringify(viewportSize)}`);
+        this.log.trace(() => `get viewportSize() => ${JSON.stringify(viewportSize)}`);
         return viewportSize;
     }
 
@@ -89,22 +144,40 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
                 height += scrollbarWidth;
             }
         }
-        this.log.trace(() => `size => ${JSON.stringify({width: width, height: height})}`);
+        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
         return {width: width, height: height};
     }
 
     private get scrollable(): boolean {
         const computedStyle = getComputedStyle(this.elementRef.nativeElement);
-        return computedStyle.overflow === 'scroll';
+        const scrollable = computedStyle.overflow === 'scroll';
+        this.log.trace(() => `get scrollable() => ${scrollable}`);
+        return scrollable;
     }
 
     ngOnInit() {
+        this.log.trace(() => `ngOnInit()`);
+    }
+
+    ngDoCheck() {
+        this.log.trace(() => `ngDoCheck()`);
+        // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
+        // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
+        // All tiles are created in invisible state, visibility must be computed later.
         this.updateTiles();
+        this.updateTileVisibility();
     }
 
     ngOnChanges(changes: SimpleChanges): void {
         this.log.debug(() => `ngOnChanges(...)`);
-        // TODO: recompute tiles on change?
+    }
+
+    ngAfterContentChecked(): void {
+        this.log.trace(() => `ngAfterContentChecked()`);
+    }
+
+    ngOnDestroy(): void {
+        this.log.trace(() => `ngOnDestroy()`);
     }
 
     /**
@@ -115,14 +188,20 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
      * @param scrollPosition scroll position of the viewport.
      * @return {Tile[]} array of tiles, where the {@link Tile#visible visible} property was updated.
      */
-    public updateTileVisibility(scrollPosition: Point2D): void {
+    public updateTileVisibility(scrollPosition?: Point2D): void {
         this.log.trace(() => `updateTileVisibility(${JSON.stringify(scrollPosition)})`);
+        if (!scrollPosition) {
+            scrollPosition = this.scrollPosition;
+        } else {
+            this.scrollPosition = scrollPosition;
+        }
+
 
         const visibleTiles: ReadonlyArray<RowCol<number>> = this.config.tileRenderStrategy.getVisibleTiles(scrollPosition);
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
 
         // map to row major flat indices
-        const n = this.canvasSize.width / this.config.tileSize.width;
+        const n = this._canvasSize.width / this.config.tileSize.width;
         const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(index => {
             return index.row * n + index.col;
         });
@@ -155,7 +234,9 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
             .forEach(tile => tile.renderer.detectChanges());
     }
 
+    /** update the scroll position of the container */
     public scrollCanvasTo(scrollPosition: Point2D): void {
+        this.log.trace(() => `scrollCanvasTo(${JSON.stringify(scrollPosition)}`);
         const canvas = this.canvas;
         if (!canvas) {
             return;
@@ -166,21 +247,22 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     }
 
     private updateTiles() {
-        let cells = this.cells;
-        const cellsSlice = this.cellsSlice;
+        this.log.trace(() => `updateTiles()`);
+        let cells = this._cells;
+        const cellsSlice = this._cellsSlice;
         const rowSlice = cellsSlice.rows;
         const colSlice = cellsSlice.cols;
         cells = cells.slice(rowSlice.start, rowSlice.end).map(row => row.slice(colSlice.start, colSlice.end));
-        // this._tiles = flatten(this.createTiles(cells));
+        this._tiles = flatten(this.createTiles(cells));
     }
 
-    private createTiles(cells: ReadonlyArray<ReadonlyArray<MatrixViewCell<CellValueType>>>): Tile<CellValueType>[][] {
+    private createTiles(cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>): Tile<CellValueType>[][] {
         this.log.debug(() => `createTiles(${JSON.stringify(cells, null, 2)})`);
         const tileSize = this.config.tileSize;
         const tileWidth = tileSize.width;
         const tileHeight = tileSize.height;
 
-        const canvasSize = this.canvasSize;
+        const canvasSize = this._canvasSize;
         if (!canvasSize) {
             throw new Error('canvasSize not set');
         }
@@ -239,5 +321,4 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         this.log.trace(() => `createTiles(...) => (${JSON.stringify(filteredTiles, null, 2)}`);
         return filteredTiles;
     }
-
 }

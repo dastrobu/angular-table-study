@@ -1,5 +1,5 @@
 import {Directive, Input, TemplateRef} from '@angular/core';
-import {CellTemplateContext} from '../tile-renderer/cell-template-context';
+import {CellTemplateContext} from '../cell/cell-template-context';
 import {CellDirective} from './cell-directive';
 
 @Directive({

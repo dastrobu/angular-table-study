@@ -4,15 +4,15 @@
      [style.min-width]="viewportSize.width + 'px'"
      [style.min-height]="viewportSize.height + 'px'"
 >
-    <matrix-view-tile-renderer *ngFor="let tile of tiles"
-                               [cellDirective]="cellDirective"
-                               [config]="config"
-                               [tile]="tile"
-                               [style.top]="tile.position.top + 'px'"
-                               [style.left]="tile.position.left + 'px'"
-                               [style.width]="tile.size.width + 'px'"
-                               [style.height]="tile.size.height + 'px'"
+    <matrix-view-tile *ngFor="let tile of tiles"
+                      [cellDirective]="cellDirective"
+                      [config]="config"
+                      [tile]="tile"
+                      [style.top]="tile.position.top + 'px'"
+                      [style.left]="tile.position.left + 'px'"
+                      [style.width]="tile.size.width + 'px'"
+                      [style.height]="tile.size.height + 'px'"
     >
-    </matrix-view-tile-renderer>
+    </matrix-view-tile>
 </div>
 

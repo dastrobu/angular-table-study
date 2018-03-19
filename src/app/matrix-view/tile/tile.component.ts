@@ -1,7 +1,9 @@
 import {
+    AfterContentChecked,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
+    DoCheck,
     Input,
     OnChanges,
     OnDestroy,
@@ -10,7 +12,7 @@ import {
     TemplateRef,
     ViewChild
 } from '@angular/core';
-import {CellTemplateContext} from './cell-template-context';
+import {CellTemplateContext} from '../cell/cell-template-context';
 import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive';
 import {Tile} from './tile';
 import {MatrixViewConfig} from '../matrix-view-config';
@@ -18,13 +20,12 @@ import {Log} from '../log';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
-    selector: 'matrix-view-tile-renderer',
-    templateUrl: './tile-renderer.component.html',
-    styleUrls: ['./tile-renderer.component.scss']
+    selector: 'matrix-view-tile',
+    templateUrl: './tile.component.html',
+    styleUrls: ['./tile.component.scss']
 })
-export class TileRendererComponent<CellValueType> implements OnInit, OnDestroy, OnChanges {
+export class TileComponent<CellValueType> implements OnInit, OnChanges, DoCheck, AfterContentChecked, OnDestroy {
     private readonly log: Log = new Log(this.constructor.name + ':');
-
     private _tile: Tile<CellValueType>;
 
     @Input()
@@ -103,16 +104,6 @@ export class TileRendererComponent<CellValueType> implements OnInit, OnDestroy, 
         }
     }
 
-    ngOnDestroy(): void {
-        const tile = this._tile;
-        if (tile) {
-            // cleanup renderer on tile before destroying this tile
-            tile.renderer = undefined;
-        }
-        this._tile = undefined;
-        this.cellDirective = undefined;
-    }
-
     ngOnChanges(changes: SimpleChanges): void {
         this.log.trace(() => `ngOnChanges(...)`);
         // attach this as renderer
@@ -129,6 +120,24 @@ export class TileRendererComponent<CellValueType> implements OnInit, OnDestroy, 
         }
     }
 
+    ngDoCheck() {
+        this.log.trace(() => `ngDoCheck()`);
+    }
+
+    ngAfterContentChecked(): void {
+        this.log.trace(() => `ngAfterContentChecked()`);
+    }
+
+    ngOnDestroy(): void {
+        this.log.trace(() => `ngOnDestroy()`);
+        const tile = this._tile;
+        if (tile) {
+            // cleanup renderer on tile before destroying this tile
+            tile.renderer = undefined;
+        }
+        this._tile = undefined;
+        this.cellDirective = undefined;
+    }
 }
 
 

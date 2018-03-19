@@ -1,4 +1,5 @@
 import {
+    AfterContentChecked,
     AfterViewInit,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
@@ -32,7 +33,7 @@ import {MatrixViewFixedTopRightCornerDirective} from './directives/matrix-view-f
 import {MatrixViewFixedTopLeftCornerDirective} from './directives/matrix-view-fixed-top-left-corner.directive';
 import {MatrixViewFixedBottomRightCornerDirective} from './directives/matrix-view-fixed-bottom-right-corner.directive';
 import {MatrixViewFixedCornerDirective} from './directives/matrix-view-fixed-corner.directive';
-import {MatrixViewCell} from './matrix-view-cell/matrix-view-cell.component';
+import {Cell} from './cell/cell';
 import {BoxSides, BoxSize, Point2D, RowsCols, Slice} from './utils';
 import {ContainerComponent} from './container/container.component';
 
@@ -47,10 +48,9 @@ import {ContainerComponent} from './container/container.component';
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
 })
-export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit, OnDestroy, OnChanges, DoCheck {
+export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit, OnDestroy, OnChanges, DoCheck, AfterContentChecked {
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
-
 
     private readonly log: Log = new Log(this.constructor.name + ':');
 
@@ -68,14 +68,19 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     @ViewChild('fixedTopLeft')
     public fixedTopLeft: ElementRef;
+
     @ViewChild('fixedTopContainer')
     public fixedTopContainer: ContainerComponent<CellValueType>;
+
     @ViewChild('fixedRightContainer')
     public fixedRightContainer: ContainerComponent<CellValueType>;
+
     @ViewChild('fixedBottomContainer')
     public fixedBottomContainer: ContainerComponent<CellValueType>;
+
     @ViewChild('fixedLeftContainer')
     public fixedLeftContainer: ContainerComponent<CellValueType>;
+
     /** scroll listener to synchronize scrolling on the main canvas and on the fixed areas. */
     private scrollListener: () => void;
 
@@ -128,12 +133,14 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
 
     get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice> }> {
+        this.log.trace(() => `get fixed() => ${JSON.stringify(this._fixed, null, 2)}`);
         return this._fixed;
     }
 
     private _scrollableSlice: RowsCols<Slice>;
 
     get scrollableSlice(): RowsCols<Slice> {
+        this.log.trace(() => `get scrollableSlice() => ${JSON.stringify(this._scrollableSlice)}`);
         return this._scrollableSlice;
     }
 
@@ -143,8 +150,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this.subscriptions.push(configObservable.subscribe(config => {
             this._config.next(new Config(config));
 
-            this.updateFixed();
-            // TODO: move this
+            // TODO: move to a better place
             this._config.value.tileRenderStrategy.viewportSize = this.scrollableContainer.viewportSize;
 
             this.changeDetectorRef.markForCheck();
@@ -166,14 +172,14 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             }
             // call copy constructor, to address mutability
             this._model.next(new Model<CellValueType>(model));
-            this.log.debug(() => `initialized new model with size: ${JSON.stringify(this._model.value.dimension)})`);
-            this.log.trace(() => `colModel.size: ${this._model.value.colModel.size}`);
-            this.log.trace(() => `colWidths: ${this._model.value.colModel.colWidths}`);
-            this.log.trace(() => `colPositions: ${this._model.value.colModel.colPositions}`);
-            this.log.trace(() => `rowHeights: ${this._model.value.rowModel.rowHeights}`);
-            this.log.trace(() => `rowPositions: ${this._model.value.rowModel.rowPositions}`);
+            this.log.debug(() =>
+                `initialized new model with size: ${JSON.stringify(this._model.value.dimension)})
+                    colModel.size: ${this._model.value.colModel.size}
+                    colWidths: ${this._model.value.colModel.colWidths}
+                    colPositions: ${this._model.value.colModel.colPositions}
+                    rowHeights: ${this._model.value.rowModel.rowHeights}
+                    rowPositions: ${this._model.value.rowModel.rowPositions}`);
 
-            this.updateFixed();
             // TODO: move to a better place
             this._config.value.tileRenderStrategy.canvasSize = this._model.value.canvasSize;
             this.changeDetectorRef.markForCheck();
@@ -188,7 +194,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
      */
     private _config: BehaviorSubject<Config> = new BehaviorSubject<Config>(new Config());
 
-    get cells(): ReadonlyArray<ReadonlyArray<MatrixViewCell<CellValueType>>> {
+    get cells(): ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> {
         return this._model.value.cells;
     }
 
@@ -218,13 +224,14 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     ngAfterViewInit(): void {
         this.log.debug(() => `ngAfterViewInit()`);
-
-        // after view init, update all tile visibilities once
-        this.updateTileVisibility({left: 0, top: 0});
     }
 
     ngOnChanges(changes: SimpleChanges): void {
-        this.log.trace(() => `ngOnChanges()`);
+        this.log.debug(() => `ngOnChanges(...)`);
+    }
+
+    ngAfterContentChecked(): void {
+        this.log.trace(() => `ngAfterContentChecked()`);
     }
 
     /**
@@ -319,6 +326,9 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     ngDoCheck() {
         this.log.trace(() => `ngDoCheck()`);
+        // recompute fixed on changes
+        // TODO DST: move this somewhere else, because the update is recomputed on every change check. Maybe to onChanges
+        this.updateFixed();
     }
 
     ngOnDestroy(): void {
@@ -332,6 +342,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     }
 
     private updateFixed() {
+        this.log.trace(() => `updateFixed()`);
         const model = this._model.value;
         const dim = model.dimension;
         const showFixed = this._config.value.showFixed;
@@ -379,7 +390,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
                 cols: {start: 0, end: right.slice.cols.start},
             }
         };
-        bottom.offset.top = viewportSize.height - right.size.height;
+        bottom.offset.top = viewportSize.height - bottom.size.height;
 
         const left = {
             size: {
@@ -404,17 +415,16 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         };
     }
 
-    private updateTileVisibility(scrollPosition?: Point2D) {
-        let scrollLeft: number;
-        let scrollTop: number;
-        if (!scrollPosition) {
-            const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
-            scrollLeft = containerNativeElement.scrollLeft;
-            scrollTop = containerNativeElement.scrollTop;
-        } else {
-            scrollLeft = scrollPosition.left;
-            scrollTop = scrollPosition.top;
-        }
+    /**
+     * update the visibility of tiles, depending on the scroll position
+     */
+    private updateTileVisibility() {
+        this.log.debug(() => `updateTileVisibility()`);
+
+        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
+        const scrollPosition = {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
+        const scrollLeft = scrollPosition.left;
+        const scrollTop = scrollPosition.top;
 
         // to synchronize scroll there are several options.
         // 1. use translate3d(-scrollLeft px, 0, 0) and hope for a good GPU.
@@ -430,6 +440,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         // use the cached values here, they should not change after the model (or config) was updated.
         const canvasSize = this._model.value.canvasSize;
         const scrollableContainer = this.scrollableContainer;
+        // TODO DST: it is questionable, if it is a good idea to access the child component, before it is completely initialized...
         const viewportSize = scrollableContainer.viewportSize;
 
         const fixedTopContainer = this.fixedTopContainer;
@@ -463,7 +474,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         }
         // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
         // too expensive.
-        scrollableContainer.updateTileVisibility({left: scrollLeft, top: scrollTop});
+        scrollableContainer.updateTileVisibility(scrollPosition);
     }
 }
 

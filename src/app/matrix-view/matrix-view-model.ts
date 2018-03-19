@@ -3,7 +3,7 @@
  */
 import {BoxSize, dimensionOf, RowsCols} from './utils';
 import {defaults} from './matrix-view-config';
-import {MatrixViewCell} from './matrix-view-cell/matrix-view-cell.component';
+import {Cell} from './cell/cell';
 
 /**
  * Union type to set sizes on either rows or columns.
@@ -43,7 +43,7 @@ export interface MatrixViewRowModel<CellValueType> {
 export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
     readonly colModel: ColModel<CellValueType> = new ColModel<CellValueType>();
     readonly rowModel: RowModel<CellValueType> = new RowModel<CellValueType>();
-    public cells: ReadonlyArray<ReadonlyArray<MatrixViewCell<CellValueType>>> = [];
+    public cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> = [];
     private _cellsValues: CellValueType[][] = [];
 
     constructor(matrixViewModel?: MatrixViewModel<CellValueType>) {
@@ -113,12 +113,12 @@ export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
     }
 
     /** create cells from cell values */
-    private createCells(): MatrixViewCell<CellValueType>[][] {
+    private createCells(): Cell<CellValueType>[][] {
         // TODO: if row or col sizes change, the cells must be updated
-        const cells: MatrixViewCell<CellValueType>[][] = [];
+        const cells: Cell<CellValueType>[][] = [];
         this.cellValues
             .forEach((row, rowIndex) => {
-                const cellRow: MatrixViewCell<CellValueType>[] = [];
+                const cellRow: Cell<CellValueType>[] = [];
                 row.forEach((cellValue, collIndex) => {
                     cellRow.push({
                         index: {row: rowIndex, col: collIndex},
@@ -149,6 +149,17 @@ export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType
     /** @return {number[]} widths (by model index) of all cols in px */
     get colWidths(): ReadonlyArray<number> {
         return this._colWidths;
+    }
+
+    /**
+     * @return row height of the indexed row in px
+     * @param index index of the row
+     */
+    colWidth(index: number): number {
+        if (index === null || index === undefined || index < 0 || index > this.size) {
+            throw new Error(`bad index: ${index}`);
+        }
+        return this._colWidths[index];
     }
 
     /**
@@ -187,7 +198,6 @@ export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType
         return this._colPositions;
     }
 
-
     private updateColPositions() {
         this._colPositions = [];
         this._colWidths.reduce((pos, width) => {
@@ -208,7 +218,7 @@ export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType
         }
         let width = 0;
         for (let i = 0; i < fixedCols; ++i) {
-            width += this.colWidths[i];
+            width += this.colWidth(i);
         }
         return width;
     }
@@ -224,7 +234,7 @@ export class ColModel<CellValueType> implements MatrixViewColModel<CellValueType
         }
         let width = 0;
         for (let i = 0; i < fixedCols; ++i) {
-            width += this.colWidths[size - 1 - i];
+            width += this.colWidth(size - 1 - i);
         }
         return width;
     }
@@ -315,7 +325,7 @@ export class RowModel<CellValueType> implements MatrixViewRowModel<CellValueType
         }
         let height = 0;
         for (let i = 0; i < fixedRows; ++i) {
-            height += this.rowHeight[i];
+            height += this.rowHeight(i);
         }
         return height;
     }
@@ -331,7 +341,7 @@ export class RowModel<CellValueType> implements MatrixViewRowModel<CellValueType
         }
         let height = 0;
         for (let i = 0; i < fixedRows; ++i) {
-            height += this.rowHeight[size - 1 - i];
+            height += this.rowHeight(size - 1 - i);
         }
         return height;
     }

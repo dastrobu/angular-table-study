@@ -3,7 +3,7 @@ import {MatrixViewModel} from './matrix-view/matrix-view-model';
 import {MatrixViewConfig} from './matrix-view/matrix-view-config';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {FormControl} from '@angular/forms';
-import {MatrixViewCell} from './matrix-view/matrix-view-cell/matrix-view-cell.component';
+import {Cell} from './matrix-view/cell/cell';
 
 @Component({
     selector: 'app-root',
@@ -76,10 +76,10 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(1);
-        this.rowCountFormControl.setValue(1);
+        this.colCountFormControl.setValue(2);
+        this.rowCountFormControl.setValue(2);
         this.fixedTopFormControl.setValue(0);
-        this.fixedBottomFormControl.setValue(0);
+        this.fixedBottomFormControl.setValue(1);
         this.fixedRightFormControl.setValue(0);
         this.fixedLeftFormControl.setValue(0);
         this.logLevelFormControl.setValue('trace');
@@ -95,15 +95,15 @@ export class AppComponent implements OnInit {
         this.updateMatrix();
     }
 
-    mouseOverCell(cell: MatrixViewCell<string>) {
+    mouseOverCell(cell: Cell<string>) {
         console.log(`mouseOverCell(${JSON.stringify(cell)})`);
     }
 
-    mouseover(cell: MatrixViewCell<string>) {
+    mouseover(cell: Cell<string>) {
         console.log(`mouseover(${JSON.stringify(cell)})`);
     }
 
-    mouseout(cell: MatrixViewCell<string>) {
+    mouseout(cell: Cell<string>) {
         console.log(`mouseout(${JSON.stringify(cell)})`);
     }
 

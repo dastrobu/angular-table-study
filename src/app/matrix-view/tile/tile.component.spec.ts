@@ -1,20 +1,20 @@
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {MatrixViewCellComponent} from './matrix-view-cell.component';
+import {TileComponent} from './tile.component';
 
-describe('MatrixViewCellComponent', () => {
-    let component: MatrixViewCellComponent;
-    let fixture: ComponentFixture<MatrixViewCellComponent>;
+describe('TileComponent', () => {
+    let component: TileComponent<string>;
+    let fixture: ComponentFixture<TileComponent<string>>;
 
     beforeEach(async(() => {
         TestBed.configureTestingModule({
-            declarations: [MatrixViewCellComponent]
+            declarations: [TileComponent]
         })
             .compileComponents();
     }));
 
     beforeEach(() => {
-        fixture = TestBed.createComponent(MatrixViewCellComponent);
+        fixture = TestBed.createComponent(TileComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

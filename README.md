@@ -6,6 +6,7 @@ dimensional data, i.e. a matrix.
  * [Customization and Styling](#customization-and-styling)
  * [Features](#features)
  * [Browser Support](#browser-support)
+ * [Performance](#performance)
  * [Known Issues](#known-issues)
  * [Demos](#demos)
 
@@ -287,8 +288,9 @@ and for the [virtual DOM](#virtual-dom).
 Change detection can cause performance issues, hence, the default strategy is replaced 
 by `ChangeDetectionStrategy.OnPush`. This requires that all inputs are either immutable or passed as
 observables, to keep track of changes. A detailed discussion can be found in the article 
-[Angular OnPush Change Detection and Component Design - Avoid Common Pitfalls](https://blog.angular-university.io/onpush-change-detection-how-it-works/).
-
+[Angular OnPush Change Detection and Component Design - Avoid Common Pitfalls](https://blog.angular-university.io/onpush-change-detection-how-it-works/)
+and a good overview is given in 
+[Everything you need to know about change detection in Angular](https://blog.angularindepth.com/everything-you-need-to-know-about-change-detection-in-angular-8006c51d206f)
 
 ## Known Issues
 

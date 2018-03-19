@@ -1,8 +1,8 @@
-/** interface for a tile, which is employed to handle the virtual dom */
 import {BoxSize, Point2D, RowCol} from '../utils';
-import {MatrixViewCell} from '../matrix-view-cell/matrix-view-cell.component';
-import {TileRendererComponent} from './tile-renderer.component';
+import {Cell} from '../cell/cell';
+import {TileComponent} from './tile.component';
 
+/** interface for a tile, which is employed to handle the virtual dom */
 export interface Tile<CellValueType> {
 
     /** index of the tile on the canvas */
@@ -18,12 +18,12 @@ export interface Tile<CellValueType> {
     readonly size: BoxSize;
 
     /** flag indicating, if the current tile is visible */
-    readonly cells: MatrixViewCell<CellValueType>[];
+    readonly cells: Cell<CellValueType>[];
 
     /** flag indicating, if the current tile is visible */
     visible: boolean;
 
     /** the renderer, responsible for rendering the tile */
-    renderer?: TileRendererComponent<CellValueType>;
+    renderer?: TileComponent<CellValueType>;
 }
 

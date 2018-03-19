@@ -1,20 +1,20 @@
 import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 
-import {TileRendererComponent} from './tile-renderer.component';
+import {CellComponent} from './cell.component';
 
-describe('TileRendererComponent', () => {
-    let component: TileRendererComponent<string>;
-    let fixture: ComponentFixture<TileRendererComponent<string>>;
+describe('CellComponent', () => {
+    let component: CellComponent;
+    let fixture: ComponentFixture<CellComponent>;
 
     beforeEach(async(() => {
         TestBed.configureTestingModule({
-            declarations: [TileRendererComponent]
+            declarations: [CellComponent]
         })
             .compileComponents();
     }));
 
     beforeEach(() => {
-        fixture = TestBed.createComponent(TileRendererComponent);
+        fixture = TestBed.createComponent(CellComponent);
         component = fixture.componentInstance;
         fixture.detectChanges();
     });

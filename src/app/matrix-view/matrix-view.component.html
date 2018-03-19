@@ -17,7 +17,7 @@
     <matrix-view-container
         *ngIf="currentConfig.showFixed.left"
         #fixedLeftContainer
-        class="fixed"
+        class="fixed fixed-left"
         [cellDirective]="fixedLeftCellDirective ? fixedLeftCellDirective :
                          (fixedCellDirective ? fixedCellDirective : cellDirective)"
         [canvasSize]="canvasSize"
@@ -32,14 +32,14 @@
     <matrix-view-container
         *ngIf="currentConfig.showFixed.bottom"
         #fixedBottomContainer
-        class="fixed"
+        class="fixed fixed-bottom"
         [cellDirective]="fixedBottomCellDirective ? fixedBottomCellDirective :
                          (fixedCellDirective ? fixedCellDirective : cellDirective)"
         [canvasSize]="canvasSize"
         [cells]="cells"
         [config]="currentConfig"
         [cellsSlice]="fixed.bottom.slice"
-        [style.transform]="'translate(' + fixed.bottom.offset.bottom + 'px, ' + fixed.bottom.offset.top + 'px)'"
+        [style.transform]="'translate(' + fixed.bottom.offset.left + 'px, ' + fixed.bottom.offset.top + 'px)'"
         [style.width]="fixed.bottom.size.width + 'px'"
         [style.height]="fixed.bottom.size.height + 'px'"
     >
@@ -47,14 +47,14 @@
     <matrix-view-container
         *ngIf="currentConfig.showFixed.top"
         #fixedTopContainer
-        class="fixed"
+        class="fixed fixed-top"
         [cellDirective]="fixedTopCellDirective ? fixedTopCellDirective :
                          (fixedCellDirective ? fixedCellDirective : cellDirective)"
         [canvasSize]="canvasSize"
         [cells]="cells"
         [config]="currentConfig"
         [cellsSlice]="fixed.top.slice"
-        [style.transform]="'translate(' + fixed.top.offset.top + 'px, ' + fixed.top.offset.top + 'px)'"
+        [style.transform]="'translate(' + fixed.top.offset.left + 'px, ' + fixed.top.offset.top + 'px)'"
         [style.width]="fixed.top.size.width + 'px'"
         [style.height]="fixed.top.size.height + 'px'"
     >
@@ -62,14 +62,14 @@
     <matrix-view-container
         *ngIf="currentConfig.showFixed.right"
         #fixedRightContainer
-        class="fixed"
+        class="fixed fixed-right"
         [cellDirective]="fixedRightCellDirective ? fixedRightCellDirective :
                          (fixedCellDirective ? fixedCellDirective : cellDirective)"
         [canvasSize]="canvasSize"
         [cells]="cells"
         [config]="currentConfig"
         [cellsSlice]="fixed.right.slice"
-        [style.transform]="'translate(' + fixed.right.offset.right + 'px, ' + fixed.right.offset.top + 'px)'"
+        [style.transform]="'translate(' + fixed.right.offset.left + 'px, ' + fixed.right.offset.top + 'px)'"
         [style.width]="fixed.right.size.width + 'px'"
         [style.height]="fixed.right.size.height + 'px'"
     >
