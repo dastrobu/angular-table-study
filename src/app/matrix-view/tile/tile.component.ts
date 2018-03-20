@@ -36,17 +36,8 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
         return this._tile;
     }
 
-    @Input()
-    set tile(value: Tile<CellValueType>) {
-        this.log.trace(() => `set tile(${JSON.stringify(value ? value.index : undefined)})`);
-        if (this._tile) {
-            this._tile.renderer = undefined;
-        }
-        this._tile = value;
-        if (this._tile) {
-            this._tile.renderer = this;
-        }
-    }
+    /** @see #style */
+    private _style: { [key: string]: string; } = {};
 
     private _template: TemplateRef<CellTemplateContext<CellValueType>>;
 
@@ -55,7 +46,18 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
         return this._template;
     }
 
-    private _style: { [key: string]: string; } = {};
+    @Input()
+    set tile(value: Tile<CellValueType>) {
+        this.log.trace(() => `set tile(${JSON.stringify(value ? value.index : undefined)})`);
+        // if the tile changes, unregister the renderer from the old tile, and register at the new tile.
+        if (this._tile) {
+            this._tile.renderer = undefined;
+        }
+        this._tile = value;
+        if (this._tile) {
+            this._tile.renderer = this as TileComponent<CellValueType>;
+        }
+    }
 
     /** style for cells */
     public get style(): { [key: string]: string; } {
@@ -65,6 +67,7 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
     constructor(private changeDetectionRef: ChangeDetectorRef) {
     }
 
+    /** explicitly call {@link ChangeDetectorRef#detectChanges} */
     public detectChanges() {
         this.log.trace(() => `detectChanges()`);
         this.changeDetectionRef.detectChanges();

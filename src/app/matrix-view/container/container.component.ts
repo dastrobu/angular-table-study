@@ -17,26 +17,41 @@ import * as _ from 'lodash';
 export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     private readonly log: Log = new Log(this.constructor.name + ':');
 
+    /** cells from the model */
     @Input()
     public cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> = [];
-    @Input()
+
+    /** tiles to render on this canvas */
     public tiles: ReadonlyArray<Tile<CellValueType>> = [];
+
+    /** offset to add to the scroll position (for fixed areas) */
     @Input()
     public scrollOffset: Point2D = {left: 0, top: 0};
 
+    /** size of the viewport, i.e. size of the container minus scrollbars */
     @Input()
     public viewportSize: BoxSize;
+
+    /** scroll position to initialize the container at */
     @Input()
     public scrollPosition: Point2D = {left: 0, top: 0};
 
     @ViewChild('canvas')
     public canvas: ElementRef;
+
+    /** global config */
     @Input()
     public config: MatrixViewConfig;
+
+    /** size of the canvas to lay out the cells */
     @Input()
     private canvasSize: BoxSize;
+
+    /** directive specifying the cell */
     @Input()
     private cellDirective: CellDirective<CellValueType>;
+
+    /** slice defining the rows and cols to display in this container */
     @Input()
     private cellsSlice: RowsCols<Slice>;
 
@@ -55,6 +70,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         // All tiles are created in invisible state, visibility must be computed later.
         if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
             (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
+            (changes.scrollPosition && !_.isEqual(changes.scrollPosition.currentValue, changes.scrollPosition.previousValue)) ||
             (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
             (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
             (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
@@ -151,6 +167,9 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         nativeElement.style.left = scrollPosition.left + 'px';
     }
 
+    /**
+     * Update {@link #tiles tiles} based on the current {@link #cells cells} and {@link #cellSlice cell slice}.
+     */
     private updateTiles() {
         this.log.debug(() => `updateTiles()`);
         let cells = this.cells;
@@ -161,6 +180,11 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         this.tiles = flatten(this.createTiles(cells));
     }
 
+    /**
+     * create new tiles from cells
+     * @param {ReadonlyArray<ReadonlyArray<Cell>>} cells cells to create tiles for
+     * @returns {Tile[][]} tiles
+     */
     private createTiles(cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>): Tile<CellValueType>[][] {
         this.log.trace(() => `createTiles(${JSON.stringify(cells, null, 2)})`);
         const tileSize = this.config.tileSize;

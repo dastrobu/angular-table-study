@@ -292,6 +292,9 @@ observables, to keep track of changes. A detailed discussion can be found in the
 and a good overview is given in 
 [Everything you need to know about change detection in Angular](https://blog.angularindepth.com/everything-you-need-to-know-about-change-detection-in-angular-8006c51d206f)
 
+It was carefully taken care of, that there is not change detection run on scroll events, or mouse over events, 
+which can happen, if the event handling is not implemented carefully.
+
 ## Known Issues
 
  * Fixed areas do not work correctly, if the number for rows/cols is smaller or equal to the number of fixed cols/rows.

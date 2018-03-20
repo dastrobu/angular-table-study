@@ -1,11 +1,8 @@
 import {
-    AfterContentChecked,
-    AfterViewInit,
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
     ContentChild,
-    DoCheck,
     ElementRef,
     Input,
     NgZone,
@@ -49,7 +46,7 @@ import {isInternetExplorer, scrollbarWidth} from './browser';
     templateUrl: './matrix-view.component.html',
     styleUrls: ['./matrix-view.component.scss']
 })
-export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit, OnDestroy, OnChanges, DoCheck, AfterContentChecked {
+export class MatrixViewComponent<CellValueType> implements OnInit, OnDestroy, OnChanges {
     private readonly log: Log = new Log(this.constructor.name + ':');
 
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
@@ -118,8 +115,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     @ContentChild(MatrixViewFixedBottomRightCornerDirective)
     fixedBottomRightDirective: MatrixViewFixedBottomRightCornerDirective;
 
+    /** @see #viewportSize */
     private _viewportSize: BoxSize;
 
+    /** size of the viewport, i.e. size fo the container minus the scroll bar widths, if any */
     get viewportSize(): BoxSize {
         if (!this._viewportSize) {
             this.updateViewportSize();
@@ -127,32 +126,42 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return this._viewportSize;
     }
 
+    /** @see #scrollPosition */
     private _scrollPosition: Point2D;
 
     constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
     }
 
-    private _fixed: BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }>;
-
-    /** the model of the matrix. */
-    private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
-
-    get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }> {
-        return this._fixed;
-    }
-
-    private _scrollableSlice: RowsCols<Slice>;
-
-    get scrollableSlice(): RowsCols<Slice> {
-        return this._scrollableSlice;
-    }
-
+    /**
+     * Current scroll position of the scrollable canvas
+     * One should note that this property is not updated on scrolling, to avoid change detection on every scroll event.
+     * Change detection on scrolling is triggered manually.
+     */
     public get scrollPosition(): Point2D {
         if (!this._scrollPosition) {
             this.updateScrollPosition();
         }
         return this._scrollPosition;
+    }
+
+    /** the model of the matrix. */
+    private _model: BehaviorSubject<Model<CellValueType>> = new BehaviorSubject<Model<CellValueType>>(new Model<CellValueType>());
+
+    /** @see #fixed */
+    private _fixed: BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }>;
+
+    /** configuration values for the fixed areas */
+    get fixed(): BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }> {
+        return this._fixed;
+    }
+
+    /** @see #scrollableSlice */
+    private _scrollableSlice: RowsCols<Slice>;
+
+    /** the slice of rows and cols to display on the scrollable canvas. */
+    get scrollableSlice(): RowsCols<Slice> {
+        return this._scrollableSlice;
     }
 
     @Input()
@@ -175,6 +184,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
      */
     private _config: BehaviorSubject<Config> = new BehaviorSubject<Config>(new Config());
 
+    /** @see Model#cells */
     get cells(): ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> {
         return this._model.value.cells;
     }
@@ -183,6 +193,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return this._config.value;
     }
 
+    /** @see Model#canvasSize */
     public get canvasSize(): BoxSize {
         return this._model.value.canvasSize;
     }
@@ -215,16 +226,8 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         }));
     }
 
-    ngAfterViewInit(): void {
-        this.log.debug(() => `ngAfterViewInit()`);
-    }
-
     ngOnChanges(changes: SimpleChanges): void {
         this.log.debug(() => `ngOnChanges(...)`);
-    }
-
-    ngAfterContentChecked(): void {
-        this.log.trace(() => `ngAfterContentChecked()`);
     }
 
     /**
@@ -317,10 +320,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return this.fixedCornerDirective ? this.fixedCornerDirective.style : undefined;
     }
 
-    ngDoCheck() {
-        this.log.trace(() => `ngDoCheck()`);
-    }
-
     ngOnDestroy(): void {
         this.log.debug(() => `ngOnDestroy()`);
         // clean up the scroll listener
@@ -336,8 +335,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         if (!this._model) {
             throw new Error('model is required');
         }
-
-        this.updateViewportSize();
 
         // to optimize performance, the scroll sync runs outside angular.
         // so one should be careful, what to do here, since there is not change detection running.
@@ -375,12 +372,34 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this._viewportSize = viewportSize;
     }
 
+    /** size of the container (including scrollbars) */
+    private get scrollableContainerSize(): BoxSize {
+        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
+        let width = Number(computedStyle.width.replace('px', ''));
+        let height = Number(computedStyle.height.replace('px', ''));
+        if (this.scrollableContainer.scrollable) {
+            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
+            if (!isInternetExplorer) {
+                width += scrollbarWidth;
+                height += scrollbarWidth;
+            }
+        }
+        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
+        return {width: width, height: height};
+    }
+
     /**
      * update the visibility of tiles, depending on the scroll position
      */
     private updateTileVisibility() {
         this.log.debug(() => `updateTileVisibility()`);
+
+        // One might wonder why one does not use this.updateScrollPosition() and store the current value in
+        // this._scrollPosition. This is on purpose. Since updateTileVisibility is called outside angular for the
+        // scroll event, one does not want to update this._scrollPosition. This would cause a change detection cycle
+        // on all containers, which should not be needed on scroll events.
         const scrollPosition = this.computeScrollPosition();
+
         const scrollLeft = scrollPosition.left;
         const scrollTop = scrollPosition.top;
 
@@ -424,24 +443,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         scrollableContainer.updateTileVisibility(scrollPosition);
     }
 
-    /**
-     * size of the container (including scrollbars)
-     */
-    private get scrollableContainerSize(): BoxSize {
-        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
-        let width = Number(computedStyle.width.replace('px', ''));
-        let height = Number(computedStyle.height.replace('px', ''));
-        if (this.scrollableContainer.scrollable) {
-            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
-            if (!isInternetExplorer) {
-                width += scrollbarWidth;
-                height += scrollbarWidth;
-            }
-        }
-        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
-    }
-
+    /** recompute all values in {@link #_fixed}. */
     private updateFixed() {
         this.log.trace(() => `updateFixed()`);
         const model = this._model.value;
@@ -524,10 +526,12 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         };
     }
 
+    /** update {@link #_scrollPosition} with the current value */
     private updateScrollPosition() {
         this._scrollPosition = this.computeScrollPosition();
     }
 
+    /** recompute the current scroll position of the canvas in the scrollable container */
     private computeScrollPosition() {
         const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
         return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};

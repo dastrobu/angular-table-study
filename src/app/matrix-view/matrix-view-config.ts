@@ -6,7 +6,7 @@ export const defaults = {
     rowHeight: 20,
     colWidth: 40,
     showFixed: {top: 0, left: 0, right: 0, bottom: 0} as BoxSides<number>,
-    tileSize: {width: 200, height: 500} as BoxSize,
+    tileSize: {width: 500, height: 500} as BoxSize,
 };
 
 export interface MatrixViewConfig {

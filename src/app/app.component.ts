@@ -85,7 +85,7 @@ export class AppComponent implements OnInit {
         this.fixedLeftFormControl.setValue(0);
         this.logLevelFormControl.setValue('trace');
         this.tileWidthFormControl.setValue(500);
-        this.tileHeightFormControl.setValue(200);
+        this.tileHeightFormControl.setValue(500);
     }
 
     ngOnInit(): void {
