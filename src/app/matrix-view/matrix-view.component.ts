@@ -120,12 +120,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
-        // TODO: must update on config observable changes, may do different
-        // observe config changes
-        this.subscriptions.push(this._config.subscribe(config => {
-            // update log level on config changes
-            this.log.level = config.logLevel;
-        }));
     }
 
     private _fixed: BoxSides<{ size: BoxSize, offset: Point2D, slice: RowsCols<Slice>, scrollOffset: Point2D }>;
@@ -360,29 +354,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return viewportSize;
     }
 
-    public get scrollPosition(): Point2D {
-        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
-        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
-    }
-
-    /**
-     * size of the container (including scrollbars)
-     */
-    private get scrollableContainerSize(): BoxSize {
-        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
-        let width = Number(computedStyle.width.replace('px', ''));
-        let height = Number(computedStyle.height.replace('px', ''));
-        if (this.scrollableContainer.scrollable) {
-            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
-            if (!isInternetExplorer) {
-                width += scrollbarWidth;
-                height += scrollbarWidth;
-            }
-        }
-        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
-    }
-
     /**
      * update the visibility of tiles, depending on the scroll position
      */
@@ -430,6 +401,29 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
         // too expensive.
         scrollableContainer.updateTileVisibility(scrollPosition);
+    }
+
+    public get scrollPosition(): Point2D {
+        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
+        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
+    }
+
+    /**
+     * size of the container (including scrollbars)
+     */
+    private get scrollableContainerSize(): BoxSize {
+        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
+        let width = Number(computedStyle.width.replace('px', ''));
+        let height = Number(computedStyle.height.replace('px', ''));
+        if (this.scrollableContainer.scrollable) {
+            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
+            if (!isInternetExplorer) {
+                width += scrollbarWidth;
+                height += scrollbarWidth;
+            }
+        }
+        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
+        return {width: width, height: height};
     }
 
     private updateFixed() {
@@ -513,6 +507,5 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             cols: {start: left.slice.cols.end, end: right.slice.cols.end},
         };
     }
-
 }
 

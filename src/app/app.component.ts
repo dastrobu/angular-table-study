@@ -4,6 +4,7 @@ import {MatrixViewConfig} from './matrix-view/matrix-view-config';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {FormControl} from '@angular/forms';
 import {Cell} from './matrix-view/cell/cell';
+import {Log} from './matrix-view/log';
 
 @Component({
     selector: 'app-root',
@@ -109,8 +110,8 @@ export class AppComponent implements OnInit {
 
     private updateMatrix() {
         console.log('updateMatrix()');
+        Log.level = this.logLevelFormControl.value;
         this.config = {
-            logLevel: this.logLevelFormControl.value,
             showFixed: {
                 top: this.fixedTopFormControl.value,
                 bottom: this.fixedBottomFormControl.value,

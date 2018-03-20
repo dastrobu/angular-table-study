@@ -17,95 +17,56 @@ import * as _ from 'lodash';
 export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     private readonly log: Log = new Log(this.constructor.name + ':');
 
-    constructor(public elementRef: ElementRef) {
-    }
-
-    private _cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> = [];
-
-    get cells(): ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> {
-        return this._cells;
-    }
-
     @Input()
-    set cells(value: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>) {
-        this.log.trace(() => `set cells(${JSON.stringify(value)})`);
-        this._cells = value;
-    }
-
-    private _cellDirective: CellDirective<CellValueType>;
-
-    get cellDirective(): CellDirective<CellValueType> {
-        return this._cellDirective;
-    }
-
+    public cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>> = [];
     @Input()
-    set cellDirective(value: CellDirective<CellValueType>) {
-        this.log.trace(() => `set cellDirective(${value})`);
-        this._cellDirective = value;
-    }
-
-    private _canvasSize: BoxSize;
+    public tiles: ReadonlyArray<Tile<CellValueType>> = [];
+    @Input()
+    public scrollOffset: Point2D = {left: 0, top: 0};
 
     @Input()
     public viewportSize: BoxSize;
-
-    get canvasSize(): BoxSize {
-        return this._canvasSize;
-    }
-
-    @Input()
-    set canvasSize(value: BoxSize) {
-        this.log.trace(() => `set canvasSize(${JSON.stringify(value)})`);
-        this._canvasSize = value;
-    }
-
-    private _cellsSlice: RowsCols<Slice>;
-
-    @ViewChild('canvas')
-    public canvas: ElementRef;
-
-    private _config: MatrixViewConfig;
-
-    @Input()
-    set config(value: MatrixViewConfig) {
-        this._config = value;
-        this.log.level = this._config.logLevel;
-    }
-
-    get cellsSlice(): RowsCols<Slice> {
-        return this._cellsSlice;
-    }
-
-    @Input()
-    set cellsSlice(value: RowsCols<Slice>) {
-        this.log.trace(() => `set cellsSlice(${JSON.stringify(value)})`);
-        this._cellsSlice = value;
-    }
-
-    get config(): MatrixViewConfig {
-        return this._config;
-    }
-
-    private _tiles: ReadonlyArray<Tile<CellValueType>> = [];
-
-    private _scrollOffset: Point2D = {left: 0, top: 0};
-
-    @Input()
-    set scrollOffset(value: Point2D) {
-        this.log.trace(() => `scrollOffset(${value})`);
-        this._scrollOffset = value;
-    }
-
-    get tiles(): ReadonlyArray<Tile<CellValueType>> {
-        this.log.trace(() => `get tiles`);
-        return this._tiles;
-    }
-
     @Input()
     public scrollPosition: Point2D = {left: 0, top: 0};
 
+    @ViewChild('canvas')
+    public canvas: ElementRef;
+    @Input()
+    public config: MatrixViewConfig;
+    @Input()
+    private canvasSize: BoxSize;
+    @Input()
+    private cellDirective: CellDirective<CellValueType>;
+    @Input()
+    private cellsSlice: RowsCols<Slice>;
+
+    constructor(public elementRef: ElementRef) {
+    }
+
     ngOnInit() {
         this.log.trace(() => `ngOnInit()`);
+    }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        this.log.trace(() => `ngOnChanges(${JSON.stringify(_.keys(changes))})`);
+
+        // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
+        // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
+        // All tiles are created in invisible state, visibility must be computed later.
+        if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
+            (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
+            (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
+            (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
+            (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
+        ) {
+            // TODO: this is also wrong, it must be done for the current scroll position
+            if (!this.scrollable) {
+                this.scrollCanvasTo({left: -this.scrollPosition.left, top: -this.scrollPosition.top});
+            }
+            this.updateTiles();
+            // TODO: this causes setting the scroll position in the fixed areas back, which is not what we want - we need to account for the current scroll of the scrollable container
+            this.updateTileVisibility({left: this.scrollPosition.left, top: this.scrollPosition.top});
+        }
     }
 
     /** flag to indicate if the container is scrollable */
@@ -128,14 +89,14 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         this.log.trace(() => `updateTileVisibility(${JSON.stringify(scrollPosition)})`);
 
         // add offset (non zero for fixed areas)
-        const scrollOffset = this._scrollOffset;
+        const scrollOffset = this.scrollOffset;
         scrollPosition = {left: scrollOffset.left + scrollPosition.left, top: scrollOffset.top + scrollPosition.top};
 
         // TODO: validate this...
         // TODO: check if the reduced viewport size for the fixed areas works correctly...
         // TODO: optimize, recomputing the viewport size every time is overkill
         const viewportSize = this.viewportSize;
-        const tileSize = this._config.tileSize;
+        const tileSize = this.config.tileSize;
         const canvasSize = this.canvasSize;
 
         const visibleTiles: ReadonlyArray<RowCol<number>> =
@@ -143,14 +104,14 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         this.log.debug(() => `visibleTiles: ${JSON.stringify(visibleTiles)}`);
 
         // map to row major flat indices
-        const n = this._canvasSize.width / this.config.tileSize.width;
+        const n = this.canvasSize.width / this.config.tileSize.width;
         const visibleTileRowMajorIndices: ReadonlyArray<number> = visibleTiles.map(index => {
             return index.row * n + index.col;
         });
         this.log.trace(() => `visibleTileRowMajorIndices: ${JSON.stringify(visibleTileRowMajorIndices)}`);
 
         const updatedTiles: Tile<CellValueType>[] = [];
-        this._tiles.forEach(tile => {
+        this.tiles.forEach(tile => {
             // TODO DST: lookup could be improved
             const index = tile.index;
             if (visibleTileRowMajorIndices.indexOf(index.row * n + index.col) === -1) {
@@ -179,7 +140,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     /** update the scroll position of the container */
     public scrollCanvasTo(scrollPosition: Point2D): void {
         this.log.trace(() => `scrollCanvasTo(${JSON.stringify(scrollPosition)}`);
-        const scrollOffset = this._scrollOffset;
+        const scrollOffset = this.scrollOffset;
         scrollPosition = {left: scrollPosition.left - scrollOffset.left, top: scrollPosition.top - scrollOffset.top};
         const canvas = this.canvas;
         if (!canvas) {
@@ -192,12 +153,12 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
 
     private updateTiles() {
         this.log.debug(() => `updateTiles()`);
-        let cells = this._cells;
-        const cellsSlice = this._cellsSlice;
+        let cells = this.cells;
+        const cellsSlice = this.cellsSlice;
         const rowSlice = cellsSlice.rows;
         const colSlice = cellsSlice.cols;
         cells = cells.slice(rowSlice.start, rowSlice.end).map(row => row.slice(colSlice.start, colSlice.end));
-        this._tiles = flatten(this.createTiles(cells));
+        this.tiles = flatten(this.createTiles(cells));
     }
 
     private createTiles(cells: ReadonlyArray<ReadonlyArray<Cell<CellValueType>>>): Tile<CellValueType>[][] {
@@ -206,7 +167,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         const tileWidth = tileSize.width;
         const tileHeight = tileSize.height;
 
-        const canvasSize = this._canvasSize;
+        const canvasSize = this.canvasSize;
         if (!canvasSize) {
             throw new Error('canvasSize not set');
         }
@@ -264,28 +225,6 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         const filteredTiles = tiles.map(row => row.filter(tile => tile.cells.length > 0)).filter(row => row.length > 0);
         this.log.trace(() => `createTiles(...) => (${JSON.stringify(filteredTiles, null, 2)}`);
         return filteredTiles;
-    }
-
-    ngOnChanges(changes: SimpleChanges): void {
-        this.log.debug(() => `ngOnChanges(...)`);
-
-        // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
-        // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
-        // All tiles are created in invisible state, visibility must be computed later.
-        if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
-            (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
-            (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
-            (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
-            (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
-        ) {
-            // TODO: this is also wrong, it must be done for the current scroll position
-            if (!this.scrollable) {
-                this.scrollCanvasTo({left: -this.scrollPosition.left, top: -this.scrollPosition.top});
-            }
-            this.updateTiles();
-            // TODO: this causes setting the scroll position in the fixed areas back, which is not what we want - we need to account for the current scroll of the scrollable container
-            this.updateTileVisibility({left: this.scrollPosition.left, top: this.scrollPosition.top});
-        }
     }
 
 }

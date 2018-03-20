@@ -2,18 +2,19 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
-    DoCheck,
     Input,
+    OnChanges,
     OnDestroy,
     OnInit,
+    SimpleChanges,
     TemplateRef,
     ViewChild
 } from '@angular/core';
 import {CellTemplateContext} from '../cell/cell-template-context';
 import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive';
 import {Tile} from './tile';
-import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
+import * as _ from 'lodash';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -21,7 +22,7 @@ import {Log} from '../log';
     templateUrl: './tile.component.html',
     styleUrls: ['./tile.component.scss']
 })
-export class TileComponent<CellValueType> implements OnInit, DoCheck, OnDestroy {
+export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestroy {
     private readonly log: Log = new Log(this.constructor.name + ':');
     private _tile: Tile<CellValueType>;
 
@@ -45,18 +46,6 @@ export class TileComponent<CellValueType> implements OnInit, DoCheck, OnDestroy 
         if (this._tile) {
             this._tile.renderer = this;
         }
-    }
-
-    private _config: MatrixViewConfig;
-
-    get config(): MatrixViewConfig {
-        return this._config;
-    }
-
-    @Input()
-    set config(value: MatrixViewConfig) {
-        this._config = value;
-        this.log.level = this._config.logLevel;
     }
 
     private _template: TemplateRef<CellTemplateContext<CellValueType>>;
@@ -102,8 +91,8 @@ export class TileComponent<CellValueType> implements OnInit, DoCheck, OnDestroy 
         }
     }
 
-    ngDoCheck() {
-        this.log.trace(() => `ngDoCheck()`);
+    ngOnChanges(changes: SimpleChanges): void {
+        this.log.trace(() => `ngOnChanges(${JSON.stringify(_.keys(changes))})`);
     }
 
     ngOnDestroy(): void {
