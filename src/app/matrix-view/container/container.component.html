@@ -7,6 +7,7 @@
     <matrix-view-tile *ngFor="let tile of tiles"
                       [cellDirective]="cellDirective"
                       [tile]="tile"
+                      [cellEventEmitter]="cellEventEmitter"
                       [style.top]="tile.position.top + 'px'"
                       [style.left]="tile.position.left + 'px'"
                       [style.width]="tile.size.width + 'px'"

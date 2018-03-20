@@ -13,4 +13,7 @@ export interface CellTemplateContext<CellValueType> {
 
     /** @see Cell#size */
     readonly size: BoxSize;
+
+    /** @see Cell#hover */
+    readonly hover: boolean;
 }

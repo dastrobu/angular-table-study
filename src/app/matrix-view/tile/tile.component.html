@@ -9,6 +9,7 @@
                       *ngFor="let cell of tile.cells"
                       [template]="template"
                       [cell]="cell"
+                      [cellEventEmitter]="cellEventEmitter"
                       [style.left]="cell.position.left - tile.position.left + 'px'"
                       [style.top]="cell.position.top - tile.position.top + 'px'"
                       [style.height]="cell.size.height + 'px'"

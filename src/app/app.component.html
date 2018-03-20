@@ -49,6 +49,16 @@
 <matrix-view
     [config]="configSubject"
     [model]="modelSubject"
+    (clickCell)="clickCell($event)"
+    (contextmenuCell)="contextmenuCell($event)"
+    (dblclickCell)="dblclickCell($event)"
+    (mousedownCell)="mousedownCell($event)"
+    (mouseenterCell)="mouseenterCell($event)"
+    (mouseleaveCell)="mouseleaveCell($event)"
+    (mousemoveCell)="mousemoveCell($event)"
+    (mouseoverCell)="mouseoverCell($event)"
+    (mouseoutCell)="mouseoutCell($event)"
+    (mouseupCell)="mouseupCell($event)"
     class="matrix-view">
     <ng-container *matrixViewFixedTopLeftCorner="let corner haveStyle style.fixedCorner.topLeft">
         <input type="button" value="X">
@@ -59,7 +69,8 @@
     <ng-container *matrixViewFixedLeftCell="let cellValue haveStyle style.fixedCell.left">
         {{cellValue}}
     </ng-container>
-    <ng-container *matrixViewCell="let cellValue haveStyle style.cell; let index = index">
+    <ng-container *matrixViewCell="let cellValue haveStyle style.cell; let index = index; let hover = hover">
+        <!-- TODO: optimize this, by givin a renderer for col property on the directive -->
         <ng-container [ngSwitch]="index.col">
             <ng-container *ngSwitchCase="1"><input type="checkbox"></ng-container>
             <ng-container *ngSwitchCase="2"><input type="text" class="input-text"></ng-container>
@@ -67,8 +78,12 @@
             <ng-container *ngSwitchCase="4"><input type="number" class="input-text" [value]="cellValue"></ng-container>
             <!--<ng-container *ngSwitchDefault>{{cellValue}}</ng-container>-->
             <ng-container *ngSwitchDefault>
-                <div (mouseover)="mouseover(index)" (mouseout)="mouseout(index)">
-                    <!--[class.hover]="hover[index]">-->
+                <div
+                    [ngClass]="{
+                    'row-hover': index.row === hoveredCell?.index.row && index.col !== hoveredCell?.index.col,
+                    'col-hover': index.col === hoveredCell?.index.col && index.row !== hoveredCell?.index.row,
+                    'cell-hover': hover}"
+                >
                     {{cellValue}}
                 </div>
             </ng-container>

@@ -15,6 +15,7 @@ import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive'
 import {Tile} from './tile';
 import {Log} from '../log';
 import * as _ from 'lodash';
+import {CellEventEmitter} from '../cell/cell';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -31,6 +32,9 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
 
     @ViewChild('defaultTemplate')
     public defaultTemplate: TemplateRef<CellTemplateContext<CellValueType>>;
+
+    @Input()
+    public cellEventEmitter: CellEventEmitter<CellValueType>;
 
     get tile(): Tile<CellValueType> {
         return this._tile;

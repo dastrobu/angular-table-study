@@ -4,11 +4,13 @@ import {
     Component,
     ContentChild,
     ElementRef,
+    EventEmitter,
     Input,
     NgZone,
     OnChanges,
     OnDestroy,
     OnInit,
+    Output,
     SimpleChanges,
     TemplateRef,
     ViewChild
@@ -30,7 +32,7 @@ import {MatrixViewFixedTopRightCornerDirective} from './directives/matrix-view-f
 import {MatrixViewFixedTopLeftCornerDirective} from './directives/matrix-view-fixed-top-left-corner.directive';
 import {MatrixViewFixedBottomRightCornerDirective} from './directives/matrix-view-fixed-bottom-right-corner.directive';
 import {MatrixViewFixedCornerDirective} from './directives/matrix-view-fixed-corner.directive';
-import {Cell} from './cell/cell';
+import {Cell, CellEventEmitter, MouseCellEvent} from './cell/cell';
 import {BoxSides, BoxSize, Point2D, RowsCols, Slice} from './utils';
 import {ContainerComponent} from './container/container.component';
 import {isInternetExplorer, scrollbarWidth} from './browser';
@@ -198,6 +200,49 @@ export class MatrixViewComponent<CellValueType> implements OnInit, OnDestroy, On
         return this._model.value.canvasSize;
     }
 
+    @Output()
+    public clickCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public contextmenuCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public dblclickCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mousedownCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mouseenterCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mouseleaveCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mousemoveCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mouseoverCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mouseoutCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    @Output()
+    public mouseupCell = new EventEmitter<MouseCellEvent<CellValueType>>();
+
+    public cellEventEmitter: CellEventEmitter<CellValueType> = {
+        click: this.clickCell,
+        contextmenu: this.contextmenuCell,
+        dblclick: this.dblclickCell,
+        mousedown: this.mousedownCell,
+        mouseenter: this.mouseenterCell,
+        mouseleave: this.mouseleaveCell,
+        mousemove: this.mousemoveCell,
+        mouseover: this.mouseoverCell,
+        mouseout: this.mouseoutCell,
+        mouseup: this.mouseupCell,
+    };
+
     /**
      * The model must be passed as input. The model is treated as immutable, i.e. changes to the model will not be
      * reflected in the table directly. Instead, a new model must be passed through the observable.
@@ -338,12 +383,13 @@ export class MatrixViewComponent<CellValueType> implements OnInit, OnDestroy, On
 
         // to optimize performance, the scroll sync runs outside angular.
         // so one should be careful, what to do here, since there is not change detection running.
-        this.zone.runOutsideAngular(() => {
+        // TODO: this must be deactivated for proper hover event handling, if it is kept inside the zone, one could also use the angular way of attaching the listener
+        // this.zone.runOutsideAngular(() => {
             this.scrollListener = () => {
                 this.updateTileVisibility();
             };
             this.scrollableContainer.elementRef.nativeElement.addEventListener('scroll', this.scrollListener);
-        });
+        // });
     }
 
     /**

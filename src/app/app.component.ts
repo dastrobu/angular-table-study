@@ -3,7 +3,7 @@ import {MatrixViewModel} from './matrix-view/matrix-view-model';
 import {MatrixViewConfig} from './matrix-view/matrix-view-config';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {FormControl} from '@angular/forms';
-import {Cell} from './matrix-view/cell/cell';
+import {Cell, MouseCellEvent} from './matrix-view/cell/cell';
 import {Log} from './matrix-view/log';
 
 @Component({
@@ -76,14 +76,16 @@ export class AppComponent implements OnInit {
     fixedRightFormControl = new FormControl();
     logLevelFormControl = new FormControl();
 
+    hoveredCell: Cell<string>;
+
     constructor() {
-        this.colCountFormControl.setValue(50);
-        this.rowCountFormControl.setValue(20);
+        this.colCountFormControl.setValue(20);
+        this.rowCountFormControl.setValue(200);
         this.fixedTopFormControl.setValue(1);
         this.fixedBottomFormControl.setValue(0);
         this.fixedRightFormControl.setValue(0);
         this.fixedLeftFormControl.setValue(0);
-        this.logLevelFormControl.setValue('trace');
+        this.logLevelFormControl.setValue('off');
         this.tileWidthFormControl.setValue(500);
         this.tileHeightFormControl.setValue(500);
     }
@@ -96,17 +98,50 @@ export class AppComponent implements OnInit {
         this.updateMatrix();
     }
 
-    mouseOverCell(cell: Cell<string>) {
-        console.log(`mouseOverCell(${JSON.stringify(cell)})`);
+    clickCell(event: MouseCellEvent<string>) {
+        console.log(`mouseclickCell(${JSON.stringify(event)})`);
     }
 
-    mouseover(cell: Cell<string>) {
-        console.log(`mouseover(${JSON.stringify(cell)})`);
+    contextmenuCell(event: MouseCellEvent<string>) {
+        // one could prevent default and implement our own context menue
+        // event.event.preventDefault();
+        console.log(`contextmenuCell(${JSON.stringify(event)})`);
     }
 
-    mouseout(cell: Cell<string>) {
-        console.log(`mouseout(${JSON.stringify(cell)})`);
+    dblclickCell(event: MouseCellEvent<string>) {
+        console.log(`dblclickCell(${JSON.stringify(event)})`);
     }
+
+    mousedownCell(event: MouseCellEvent<string>) {
+        console.log(`mousedownCell(${JSON.stringify(event)})`);
+    }
+
+    mouseenterCell(event: MouseCellEvent<string>) {
+        console.log(`mouseenterCell(${JSON.stringify(event)})`);
+    }
+
+    mouseleaveCell(event: MouseCellEvent<string>) {
+        console.log(`mouseleaveCell(${JSON.stringify(event)})`);
+    }
+
+    mousemoveCell(event: MouseCellEvent<string>) {
+        console.log(`mousemoveCell(${JSON.stringify(event)})`);
+        this.hoveredCell = event.cell;
+    }
+
+    mouseoverCell(event: MouseCellEvent<string>) {
+        console.log(`mouseoverCell(${JSON.stringify(event)})`);
+    }
+
+    mouseoutCell(event: MouseCellEvent<string>) {
+        console.log(`mouseoutCell(${JSON.stringify(event)})`);
+        this.hoveredCell = undefined;
+    }
+
+    mouseupCell(event: MouseCellEvent<string>) {
+        console.log(`mouseupCell(${JSON.stringify(event)})`);
+    }
+
 
     private updateMatrix() {
         console.log('updateMatrix()');

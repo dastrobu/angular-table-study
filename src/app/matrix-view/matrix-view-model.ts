@@ -124,7 +124,8 @@ export class Model<CellValueType> implements MatrixViewModel<CellValueType> {
                         index: {row: rowIndex, col: collIndex},
                         value: cellValue,
                         position: {top: this.rowPosition(rowIndex), left: this.colPosition(collIndex)},
-                        size: {height: this.rowHeight(rowIndex), width: this.colWidth(collIndex)}
+                        size: {height: this.rowHeight(rowIndex), width: this.colWidth(collIndex)},
+                        hover: false,
                     });
                 });
                 cells.push(cellRow);

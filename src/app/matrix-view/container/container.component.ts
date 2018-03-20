@@ -3,7 +3,7 @@ import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
 import {CellDirective} from '../directives/cell-directive';
 import {BoxSize, flatten, Point2D, RowCol, RowsCols, Slice} from '../utils';
-import {Cell} from '../cell/cell';
+import {Cell, CellEventEmitter} from '../cell/cell';
 import {Tile} from '../tile/tile';
 import * as _ from 'lodash';
 
@@ -54,6 +54,9 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     /** slice defining the rows and cols to display in this container */
     @Input()
     private cellsSlice: RowsCols<Slice>;
+
+    @Input()
+    public cellEventEmitter: CellEventEmitter<CellValueType>;
 
     constructor(public elementRef: ElementRef) {
     }
@@ -150,7 +153,11 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         });
         updatedTiles
             .filter(tile => tile.renderer)
-            .forEach(tile => tile.renderer.detectChanges());
+            // one has two options here, do the change detection asynchronously, which won't block scrolling, but
+            // will not show the tiles immediately, or do it synchronously, which block scrolling sometimes, but
+            // shows tiles faster.
+            .forEach(tile => setTimeout(() => tile.renderer.detectChanges()));
+        // .forEach(tile => tile.renderer.detectChanges());
     }
 
     /** update the scroll position of the container */
