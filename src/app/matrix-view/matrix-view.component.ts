@@ -50,10 +50,10 @@ import {isInternetExplorer, scrollbarWidth} from './browser';
     styleUrls: ['./matrix-view.component.scss']
 })
 export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit, OnDestroy, OnChanges, DoCheck, AfterContentChecked {
+    private readonly log: Log = new Log(this.constructor.name + ':');
+
     /** array of subscriptions, from which one must unsubscribe in {@link #ngOnDestroy}. */
     private readonly subscriptions: Subscription[] = [];
-
-    private readonly log: Log = new Log(this.constructor.name + ':');
 
     @ViewChild('scrollableContainer')
     public scrollableContainer: ContainerComponent<CellValueType>;
@@ -118,6 +118,17 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     @ContentChild(MatrixViewFixedBottomRightCornerDirective)
     fixedBottomRightDirective: MatrixViewFixedBottomRightCornerDirective;
 
+    private _viewportSize: BoxSize;
+
+    get viewportSize(): BoxSize {
+        if (!this._viewportSize) {
+            this.updateViewportSize();
+        }
+        return this._viewportSize;
+    }
+
+    private _scrollPosition: Point2D;
+
     constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
     }
@@ -134,8 +145,14 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     private _scrollableSlice: RowsCols<Slice>;
 
     get scrollableSlice(): RowsCols<Slice> {
-        this.log.trace(() => `get scrollableSlice() => ${JSON.stringify(this._scrollableSlice)}`);
         return this._scrollableSlice;
+    }
+
+    public get scrollPosition(): Point2D {
+        if (!this._scrollPosition) {
+            this.updateScrollPosition();
+        }
+        return this._scrollPosition;
     }
 
     @Input()
@@ -144,33 +161,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this.subscriptions.push(configObservable.subscribe(config => {
             this._config.next(new Config(config));
             // recompute fixed on changes
-            this.updateFixed();
-            this.changeDetectorRef.markForCheck();
-        }));
-    }
-
-    /**
-     * The model must be passed as input. The model is treated as immutable, i.e. changes to the model will not be
-     * reflected in the table directly. Instead, a new model must be passed through the observable.
-     * @param {MatrixViewModel} modelObservable
-     */
-    @Input()
-    set model(modelObservable: Observable<MatrixViewModel<CellValueType>>) {
-        // TODO DST: we mus explicitly store the observable and cleanup the subscription if a new observable is passed
-        this.subscriptions.push(modelObservable.subscribe(model => {
-            if (!model) {
-                this.log.debug(() => `replacing undefined model by empty model`);
-                model = new Model<CellValueType>();
-            }
-            // call copy constructor, to address mutability
-            this._model.next(new Model<CellValueType>(model));
-            this.log.debug(() =>
-                `initialized new model with size: ${JSON.stringify(this._model.value.dimension)})
-                    colModel.size: ${this._model.value.colModel.size}
-                    colWidths: ${this._model.value.colModel.colWidths}
-                    colPositions: ${this._model.value.colModel.colPositions}
-                    rowHeights: ${this._model.value.rowModel.rowHeights}
-                    rowPositions: ${this._model.value.rowModel.rowPositions}`);
+            this.updateScrollPosition();
             this.updateFixed();
             this.changeDetectorRef.markForCheck();
         }));
@@ -196,20 +187,32 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return this._model.value.canvasSize;
     }
 
-    ngOnInit() {
-        this.log.debug(() => `ngOnInit()`);
-        if (!this._model) {
-            throw new Error('model is required');
-        }
-
-        // to optimize performance, the scroll sync runs outside angular.
-        // so one should be careful, what to do here, since there is not change detection running.
-        this.zone.runOutsideAngular(() => {
-            this.scrollListener = () => {
-                this.updateTileVisibility();
-            };
-            this.scrollableContainer.elementRef.nativeElement.addEventListener('scroll', this.scrollListener);
-        });
+    /**
+     * The model must be passed as input. The model is treated as immutable, i.e. changes to the model will not be
+     * reflected in the table directly. Instead, a new model must be passed through the observable.
+     * @param {MatrixViewModel} modelObservable
+     */
+    @Input()
+    set model(modelObservable: Observable<MatrixViewModel<CellValueType>>) {
+        // TODO DST: we mus explicitly store the observable and cleanup the subscription if a new observable is passed
+        this.subscriptions.push(modelObservable.subscribe(model => {
+            if (!model) {
+                this.log.debug(() => `replacing undefined model by empty model`);
+                model = new Model<CellValueType>();
+            }
+            // call copy constructor, to address mutability
+            this._model.next(new Model<CellValueType>(model));
+            this.log.debug(() =>
+                `initialized new model with size: ${JSON.stringify(this._model.value.dimension)})
+                    colModel.size: ${this._model.value.colModel.size}
+                    colWidths: ${this._model.value.colModel.colWidths}
+                    colPositions: ${this._model.value.colModel.colPositions}
+                    rowHeights: ${this._model.value.rowModel.rowHeights}
+                    rowPositions: ${this._model.value.rowModel.rowPositions}`);
+            this.updateScrollPosition();
+            this.updateFixed();
+            this.changeDetectorRef.markForCheck();
+        }));
     }
 
     ngAfterViewInit(): void {
@@ -328,10 +331,28 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         this.subscriptions.forEach(subscription => subscription.unsubscribe());
     }
 
+    ngOnInit() {
+        this.log.debug(() => `ngOnInit()`);
+        if (!this._model) {
+            throw new Error('model is required');
+        }
+
+        this.updateViewportSize();
+
+        // to optimize performance, the scroll sync runs outside angular.
+        // so one should be careful, what to do here, since there is not change detection running.
+        this.zone.runOutsideAngular(() => {
+            this.scrollListener = () => {
+                this.updateTileVisibility();
+            };
+            this.scrollableContainer.elementRef.nativeElement.addEventListener('scroll', this.scrollListener);
+        });
+    }
+
     /**
      * size of the viewport, i.e. the size of the container minus scrollbars, if any.
      */
-    public get viewportSize(): BoxSize {
+    public updateViewportSize(): BoxSize {
         const containerSize = this.scrollableContainerSize;
 
         if (!this.scrollableContainer.scrollable) {
@@ -350,8 +371,8 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         }
         const viewportSize = {width: width, height: height};
 
-        this.log.trace(() => `get viewportSize() => ${JSON.stringify(viewportSize)}`);
-        return viewportSize;
+        this.log.trace(() => `updateViewportSize() => ${JSON.stringify(viewportSize)}`);
+        this._viewportSize = viewportSize;
     }
 
     /**
@@ -359,7 +380,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
      */
     private updateTileVisibility() {
         this.log.debug(() => `updateTileVisibility()`);
-        const scrollPosition = this.scrollPosition;
+        const scrollPosition = this.computeScrollPosition();
         const scrollLeft = scrollPosition.left;
         const scrollTop = scrollPosition.top;
 
@@ -401,11 +422,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         // use the internal state of scrollableTiles, since recomputing them is unnecessary here and
         // too expensive.
         scrollableContainer.updateTileVisibility(scrollPosition);
-    }
-
-    public get scrollPosition(): Point2D {
-        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
-        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
     }
 
     /**
@@ -506,6 +522,15 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             // filter all cols, that belong to fixed left or right
             cols: {start: left.slice.cols.end, end: right.slice.cols.end},
         };
+    }
+
+    private updateScrollPosition() {
+        this._scrollPosition = this.computeScrollPosition();
+    }
+
+    private computeScrollPosition() {
+        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
+        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
     }
 }
 
