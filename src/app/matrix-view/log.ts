@@ -6,6 +6,7 @@
  * log lambda, which is employed to pass log messages as lambdas, to defer log message creation to the point, where
  * it is clear if the log message will be shown or not.
  */
+
 declare type MessageProvider = () => string;
 
 
@@ -20,64 +21,52 @@ export type LogLevel = 'off' | 'info' | 'debug' | 'trace';
 export class Log {
 
     /**
-     * No operation logger, which simply ignores the log.
-     * @param log message to log (as lambda)
+     * @param _prefix prefix to prepend before each log statement.
      */
-    private noopLogger: (log: MessageProvider) => void;
+    constructor(private _prefix: string = '') {
+        this.consoleLogger = (log: MessageProvider) => {
+            console.log(this._prefix + log());
+        };
+    }
+
     /**
      * Logger, which logs to the console.
      * @param log message to log (as lambda)
      */
     private consoleLogger: (log: MessageProvider) => void;
-    private infoLogger: (log: MessageProvider) => void;
 
-    get level() {
-        return this._level;
-    }
+    /** static log level, internally represented as number for quick checks */
+    private static _level: number;
 
-    /**
-     * current log level
-     */
-    private _level: LogLevel;
-    private debugLogger: (log: MessageProvider) => void;
-    private traceLogger: (log: MessageProvider) => void;
-
-    constructor(private _prefix: string = '') {
-        this.noopLogger = (log: MessageProvider) => {
-        };
-        this.consoleLogger = (log: MessageProvider) => {
-            console.log(this._prefix + log());
-        };
-        this.infoLogger = this.noopLogger;
-        this.debugLogger = this.noopLogger;
-        this.traceLogger = this.noopLogger;
+    static get level(): LogLevel {
+        switch (Log._level) {
+            case 1:
+                return 'info';
+            case 2:
+                return 'debug';
+            case 3:
+                return 'trace';
+            default:
+                return 'off';
+        }
     }
 
     /**
      * @param value new log level, which causes an update of the logger configuration.
      */
-    set level(value) {
-        this._level = value;
+    static set level(value: LogLevel) {
         switch (value) {
             case 'info':
-                this.infoLogger = this.consoleLogger;
-                this.debugLogger = this.noopLogger;
-                this.traceLogger = this.noopLogger;
+                Log._level = 1;
                 break;
             case 'debug':
-                this.infoLogger = this.consoleLogger;
-                this.debugLogger = this.consoleLogger;
-                this.traceLogger = this.noopLogger;
+                Log._level = 2;
                 break;
             case 'trace':
-                this.infoLogger = this.consoleLogger;
-                this.debugLogger = this.consoleLogger;
-                this.traceLogger = this.consoleLogger;
+                Log._level = 3;
                 break;
             default:
-                this.infoLogger = this.noopLogger;
-                this.debugLogger = this.noopLogger;
-                this.traceLogger = this.noopLogger;
+                Log._level = 0;
         }
     }
 
@@ -86,7 +75,9 @@ export class Log {
      * @param log function, which provides the message to log.
      */
     public info(log: MessageProvider) {
-        this.infoLogger(log);
+        if (Log._level >= 1) {
+            this.consoleLogger(log);
+        }
     }
 
     /**
@@ -94,7 +85,9 @@ export class Log {
      * @param log function, which provides the message to log.
      */
     public debug(log: MessageProvider) {
-        this.debugLogger(log);
+        if (Log._level >= 2) {
+            this.consoleLogger(log);
+        }
     }
 
     /**
@@ -102,6 +95,8 @@ export class Log {
      * @param log function, which provides the message to log.
      */
     public trace(log: MessageProvider) {
-        this.traceLogger(log);
+        if (Log._level >= 3) {
+            this.consoleLogger(log);
+        }
     }
 }

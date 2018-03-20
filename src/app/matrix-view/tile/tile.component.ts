@@ -1,17 +1,30 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnDestroy, OnInit, TemplateRef, ViewChild} from '@angular/core';
-import {Tile} from '../matrix-view-view-model';
-import {CellTemplateContext} from './cell-template-context';
+import {
+    ChangeDetectionStrategy,
+    ChangeDetectorRef,
+    Component,
+    Input,
+    OnChanges,
+    OnDestroy,
+    OnInit,
+    SimpleChanges,
+    TemplateRef,
+    ViewChild
+} from '@angular/core';
+import {CellTemplateContext} from '../cell/cell-template-context';
 import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive';
+import {Tile} from './tile';
+import {Log} from '../log';
+import * as _ from 'lodash';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
-    selector: 'matrix-view-tile-renderer',
-    templateUrl: './matrix-view-tile-renderer.component.html',
-    styleUrls: ['./matrix-view-tile-renderer.component.scss']
+    selector: 'matrix-view-tile',
+    templateUrl: './tile.component.html',
+    styleUrls: ['./tile.component.scss']
 })
-export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, OnDestroy {
-    @Input()
-    public tile: Tile<CellValueType>;
+export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestroy {
+    private readonly log: Log = new Log(this.constructor.name + ':');
+    private _tile: Tile<CellValueType>;
 
     @Input()
     public cellDirective: MatrixViewCellDirective<CellValueType>;
@@ -19,8 +32,21 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
     @ViewChild('defaultTemplate')
     public defaultTemplate: TemplateRef<CellTemplateContext<CellValueType>>;
 
+    get tile(): Tile<CellValueType> {
+        return this._tile;
+    }
+
     @Input()
-    public cellStyle?: { [key: string]: string; };
+    set tile(value: Tile<CellValueType>) {
+        this.log.trace(() => `set tile(${JSON.stringify(value ? value.index : undefined)})`);
+        if (this._tile) {
+            this._tile.renderer = undefined;
+        }
+        this._tile = value;
+        if (this._tile) {
+            this._tile.renderer = this;
+        }
+    }
 
     private _template: TemplateRef<CellTemplateContext<CellValueType>>;
 
@@ -40,11 +66,12 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
     }
 
     public detectChanges() {
+        this.log.trace(() => `detectChanges()`);
         this.changeDetectionRef.detectChanges();
     }
 
     ngOnInit() {
-        this.tile.renderer = this;
+        this.log.trace(() => `ngOnInit()`);
         if (!this.defaultTemplate) {
             throw new Error('no defaultTemplate set');
         }
@@ -64,15 +91,20 @@ export class MatrixViewTileRendererComponent<CellValueType> implements OnInit, O
         }
     }
 
-    ngOnDestroy(): void {
-        const tile = this.tile;
-        if (tile) {
-            tile.renderer = undefined;
-        }
-        this.tile = undefined;
-        this.cellDirective = undefined;
+    ngOnChanges(changes: SimpleChanges): void {
+        this.log.trace(() => `ngOnChanges(${JSON.stringify(_.keys(changes))})`);
     }
 
+    ngOnDestroy(): void {
+        this.log.trace(() => `ngOnDestroy()`);
+        const tile = this._tile;
+        if (tile) {
+            // cleanup renderer on tile before destroying this tile
+            tile.renderer = undefined;
+        }
+        this._tile = undefined;
+        this.cellDirective = undefined;
+    }
 }
 
 

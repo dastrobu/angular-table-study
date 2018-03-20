@@ -1,9 +1,8 @@
-import {Log, LogLevel} from './log';
+import {Log} from './log';
 import {BoxCorners, BoxSides, BoxSize} from './utils';
-import {DefaultTileRenderStrategy, TileRenderStrategy} from './matrix-view-tile-renderer/tile-render-strategy';
+import {defaultTileRenderStrategy, TileRenderStrategy} from './tile/tile-render-strategy';
 
 export const defaults = {
-    logLevel: 'off' as LogLevel,
     rowHeight: 20,
     colWidth: 40,
     showFixed: {top: 0, left: 0, right: 0, bottom: 0} as BoxSides<number>,
@@ -34,11 +33,6 @@ export interface MatrixViewConfig {
     readonly showFixed?: { top: number, left: number, right: number, bottom: number };
 
     /**
-     * log level for debugging purposes
-     */
-    readonly logLevel?: LogLevel;
-
-    /**
      * size of the tiles to use for the virtual dom.
      */
     readonly tileSize?: BoxSize;
@@ -51,7 +45,6 @@ export interface MatrixViewConfig {
 
 export class Config implements MatrixViewConfig {
     showFixed: BoxSides<number> = defaults.showFixed;
-    logLevel: LogLevel = defaults.logLevel;
     tileSize: BoxSize = defaults.tileSize;
     showFixedCorners: BoxCorners<boolean> = {
         topLeft: false,
@@ -59,20 +52,15 @@ export class Config implements MatrixViewConfig {
         bottomLeft: false,
         bottomRight: false,
     };
+
     private readonly log: Log = new Log(this.constructor.name + ':');
-    tileRenderStrategy: TileRenderStrategy = new DefaultTileRenderStrategy();
+
+    tileRenderStrategy: TileRenderStrategy = defaultTileRenderStrategy;
 
     /** copy constructor, which extracts all information and stores it */
     constructor(config?: MatrixViewConfig) {
         if (!config) {
             return;
-        }
-
-        // log level must be updated first, so that logging works correctly
-        if (config.logLevel !== undefined && config.logLevel !== null) {
-            this.logLevel = config.logLevel;
-            this.log.level = this.logLevel;
-            this.log.info(() => `did set logLevel: ${this.logLevel}`);
         }
 
         if (config.tileSize !== undefined && config.tileSize !== null) {
@@ -84,9 +72,6 @@ export class Config implements MatrixViewConfig {
             this.tileRenderStrategy = config.tileRenderStrategy;
             this.log.info(() => `did set tileRenderStrategy: ${this.tileRenderStrategy}`);
         }
-
-        // pass tile size to renderer strategy
-        this.tileRenderStrategy.tileSize = this.tileSize;
 
         // determine fixed config
         if (config.showFixed !== undefined && config.showFixed !== null) {
@@ -114,7 +99,7 @@ export class Config implements MatrixViewConfig {
                 topLeft: Boolean(this.showFixed.top && this.showFixed.left),
                 topRight: Boolean(this.showFixed.top && this.showFixed.right),
                 bottomRight: Boolean(this.showFixed.bottom && this.showFixed.right),
-                bottomLeft: Boolean(this.showFixed.bottom && this.showFixed.right),
+                bottomLeft: Boolean(this.showFixed.bottom && this.showFixed.left),
             };
             this.log.info(() => {
                 return `did set automatically config.showFixedCorners: ${JSON.stringify(this.showFixedCorners)}`;

@@ -1,0 +1,29 @@
+:host {
+    display: block;
+}
+
+// the canvas is the area all scrollable content is drawn to
+.canvas {
+    display: block;
+    position: relative;
+}
+
+.canvas-top {
+    display: block;
+    position: relative;
+}
+
+.canvas-right {
+    display: block;
+    position: relative;
+}
+
+.canvas-left {
+    display: block;
+    position: relative;
+}
+
+.canvas-bottom {
+    display: block;
+    position: relative;
+}

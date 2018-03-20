@@ -1,4 +1,3 @@
-import {Cell} from '../matrix-view-view-model';
 import {BoxSize, Point2D, RowCol} from '../utils';
 
 /** context definition for cell templates */

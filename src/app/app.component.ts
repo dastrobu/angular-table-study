@@ -3,6 +3,8 @@ import {MatrixViewModel} from './matrix-view/matrix-view-model';
 import {MatrixViewConfig} from './matrix-view/matrix-view-config';
 import {BehaviorSubject} from 'rxjs/BehaviorSubject';
 import {FormControl} from '@angular/forms';
+import {Cell} from './matrix-view/cell/cell';
+import {Log} from './matrix-view/log';
 
 @Component({
     selector: 'app-root',
@@ -75,13 +77,13 @@ export class AppComponent implements OnInit {
     logLevelFormControl = new FormControl();
 
     constructor() {
-        this.colCountFormControl.setValue(20);
+        this.colCountFormControl.setValue(50);
         this.rowCountFormControl.setValue(20);
         this.fixedTopFormControl.setValue(1);
         this.fixedBottomFormControl.setValue(0);
         this.fixedRightFormControl.setValue(0);
-        this.fixedLeftFormControl.setValue(1);
-        this.logLevelFormControl.setValue('debug');
+        this.fixedLeftFormControl.setValue(0);
+        this.logLevelFormControl.setValue('trace');
         this.tileWidthFormControl.setValue(500);
         this.tileHeightFormControl.setValue(200);
     }
@@ -94,10 +96,22 @@ export class AppComponent implements OnInit {
         this.updateMatrix();
     }
 
+    mouseOverCell(cell: Cell<string>) {
+        console.log(`mouseOverCell(${JSON.stringify(cell)})`);
+    }
+
+    mouseover(cell: Cell<string>) {
+        console.log(`mouseover(${JSON.stringify(cell)})`);
+    }
+
+    mouseout(cell: Cell<string>) {
+        console.log(`mouseout(${JSON.stringify(cell)})`);
+    }
+
     private updateMatrix() {
         console.log('updateMatrix()');
+        Log.level = this.logLevelFormControl.value;
         this.config = {
-            logLevel: this.logLevelFormControl.value,
             showFixed: {
                 top: this.fixedTopFormControl.value,
                 bottom: this.fixedBottomFormControl.value,
@@ -111,16 +125,16 @@ export class AppComponent implements OnInit {
             // showFixedCorners: false,
         };
         this.configSubject.next(this.config);
-        const cells = [];
+        const cellValue = [];
         for (let i = 0; i < this.rowCountFormControl.value; ++i) {
             const row = [];
             for (let j = 0; j < this.colCountFormControl.value; ++j) {
                 row.push(`Cell ${i} ${j}`);
             }
-            cells.push(row);
+            cellValue.push(row);
         }
         this.modelSubject.next({
-            cells: cells,
+            cellValues: cellValue,
             colModel: {
                 colWidths: 100,
             }
