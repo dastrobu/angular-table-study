@@ -120,7 +120,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
 
     constructor(public changeDetectorRef: ChangeDetectorRef,
                 public zone: NgZone) {
-        // TODO: must update on config observable changes, may do differen
+        // TODO: must update on config observable changes, may do different
         // observe config changes
         this.subscriptions.push(this._config.subscribe(config => {
             // update log level on config changes
@@ -340,7 +340,7 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
     public get viewportSize(): BoxSize {
         const containerSize = this.scrollableContainerSize;
 
-        if (!this.scrollable) {
+        if (!this.scrollableContainer.scrollable) {
             return containerSize;
         }
 
@@ -360,12 +360,35 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         return viewportSize;
     }
 
+    public get scrollPosition(): Point2D {
+        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
+        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
+    }
+
+    /**
+     * size of the container (including scrollbars)
+     */
+    private get scrollableContainerSize(): BoxSize {
+        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
+        let width = Number(computedStyle.width.replace('px', ''));
+        let height = Number(computedStyle.height.replace('px', ''));
+        if (this.scrollableContainer.scrollable) {
+            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
+            if (!isInternetExplorer) {
+                width += scrollbarWidth;
+                height += scrollbarWidth;
+            }
+        }
+        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
+        return {width: width, height: height};
+    }
+
     /**
      * update the visibility of tiles, depending on the scroll position
      */
     private updateTileVisibility() {
         this.log.debug(() => `updateTileVisibility()`);
-        const scrollPosition = this.scrollPosition();
+        const scrollPosition = this.scrollPosition;
         const scrollLeft = scrollPosition.left;
         const scrollTop = scrollPosition.top;
 
@@ -378,7 +401,6 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         // 3. use left = -scrollLeft px
         //    This works in all Browsers and scrolling performance is the best one of all three options.
         //    In Chrome performance is excellent, Firefox and IE show some lack for big data sets.
-
 
         // use the cached values here, they should not change after the model (or config) was updated.
         const scrollableContainer = this.scrollableContainer;
@@ -410,41 +432,12 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
         scrollableContainer.updateTileVisibility(scrollPosition);
     }
 
-    private scrollPosition() {
-        const containerNativeElement = this.scrollableContainer.elementRef.nativeElement;
-        return {left: containerNativeElement.scrollLeft, top: containerNativeElement.scrollTop};
-    }
-
-    /**
-     * size of the container (including scrollbars)
-     */
-    private get scrollableContainerSize(): BoxSize {
-        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
-        let width = Number(computedStyle.width.replace('px', ''));
-        let height = Number(computedStyle.height.replace('px', ''));
-        if (this.scrollable) {
-            // on Chrome and Firefox the scrollbar width must be added, on IE this is not required
-            if (!isInternetExplorer) {
-                width += scrollbarWidth;
-                height += scrollbarWidth;
-            }
-        }
-        this.log.trace(() => `get size() => ${JSON.stringify({width: width, height: height})}`);
-        return {width: width, height: height};
-    }
-
-    private get scrollable(): boolean {
-        const computedStyle = getComputedStyle(this.scrollableContainer.elementRef.nativeElement);
-        const scrollable = computedStyle.overflow === 'scroll';
-        this.log.trace(() => `get scrollable() => ${scrollable}`);
-        return scrollable;
-    }
-
     private updateFixed() {
         this.log.trace(() => `updateFixed()`);
         const model = this._model.value;
         const dim = model.dimension;
-        const showFixed = this._config.value.showFixed;
+        const config = this._config.value;
+        const showFixed = config.showFixed;
         const canvasSize = this._model.value.canvasSize;
         const viewportSize = this.viewportSize;
         const colModel = model.colModel;
@@ -457,8 +450,9 @@ export class MatrixViewComponent<CellValueType> implements OnInit, AfterViewInit
             },
             offset: {top: 0, left: 0},
             slice: {
-                // since fixed right is on top, no rows are filtered
-                rows: {start: 0, end: dim.rows},
+                // since fixed right is on top, no rows are filtered by default, except for the case, where fixed
+                // corners are shown, where the lower rows are hidden.
+                rows: {start: 0, end: config.showFixedCorners.bottomRight ? dim.rows - showFixed.right : dim.rows},
                 cols: {start: dim.cols - Math.min(showFixed.right, dim.cols), end: dim.cols},
             },
             scrollOffset: {top: 0, left: 0}

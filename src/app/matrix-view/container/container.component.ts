@@ -101,28 +101,19 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         return this._tiles;
     }
 
+    @Input()
+    public scrollPosition: Point2D = {left: 0, top: 0};
+
     ngOnInit() {
         this.log.trace(() => `ngOnInit()`);
     }
 
-    ngOnChanges(changes: SimpleChanges): void {
-        this.log.debug(() => `ngOnChanges(...)`);
-
-        // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
-        // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
-        // All tiles are created in invisible state, visibility must be computed later.
-        if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
-            (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
-            (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
-            (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
-            (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
-        ) {
-            // TODO: this is also wrong, it must be done for the current scroll position
-            this.scrollCanvasTo({left: 0, top: 0});
-            this.updateTiles();
-            // TODO: this causes setting the scroll position in the fixed areas back, which is not what we want - we need to account for the current scroll of the scrollable container
-            this.updateTileVisibility({left: 0, top: 0});
-        }
+    /** flag to indicate if the container is scrollable */
+    get scrollable(): boolean {
+        const computedStyle = getComputedStyle(this.elementRef.nativeElement);
+        const scrollable = computedStyle.overflow === 'scroll';
+        this.log.trace(() => `get scrollable() => ${scrollable}`);
+        return scrollable;
     }
 
     /**
@@ -274,4 +265,27 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         this.log.trace(() => `createTiles(...) => (${JSON.stringify(filteredTiles, null, 2)}`);
         return filteredTiles;
     }
+
+    ngOnChanges(changes: SimpleChanges): void {
+        this.log.debug(() => `ngOnChanges(...)`);
+
+        // Tiles must be recomputed on changes, however, one should keep in mind, that at this stage in the
+        // lifecycle child components do not exist and hence, the renderers cannot render the tiles yet.
+        // All tiles are created in invisible state, visibility must be computed later.
+        if ((changes.cells && !_.isEqual(changes.cells.currentValue, changes.cells.previousValue)) ||
+            (changes.scrollOffset && !_.isEqual(changes.scrollOffset.currentValue, changes.scrollOffset.previousValue)) ||
+            (changes.canvasSize && !_.isEqual(changes.canvasSize.currentValue, changes.canvasSize.previousValue)) ||
+            (changes.viewportSize && !_.isEqual(changes.viewportSize.currentValue, changes.viewportSize.previousValue)) ||
+            (changes.config && !_.isEqual(changes.config.currentValue.tileSize, changes.config.previousValue))
+        ) {
+            // TODO: this is also wrong, it must be done for the current scroll position
+            if (!this.scrollable) {
+                this.scrollCanvasTo({left: -this.scrollPosition.left, top: -this.scrollPosition.top});
+            }
+            this.updateTiles();
+            // TODO: this causes setting the scroll position in the fixed areas back, which is not what we want - we need to account for the current scroll of the scrollable container
+            this.updateTileVisibility({left: this.scrollPosition.left, top: this.scrollPosition.top});
+        }
+    }
+
 }
