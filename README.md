@@ -180,7 +180,7 @@ To implement scroll event handler properly, it is important to know, that
 not [cancelable](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) and 
 [wheel events](https://developer.mozilla.org/en-US/docs/Web/API/Event/cancelable) are. 
 Consequently, one should not bind any event handlers to 
-the wheel event, since the event handlder must be executed completely, before the browser can 
+the wheel event, since the event handler must be executed completely, before the browser can 
 execute the scoll event (because the event handler could call `preventDefault()` on the wheel event).
 
 When implementing the scroll event handler, performance must be monitored carefully. 
