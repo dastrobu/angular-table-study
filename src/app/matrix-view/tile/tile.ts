@@ -1,6 +1,7 @@
 import {BoxSize, Point2D, RowCol} from '../utils';
 import {Cell} from '../cell/cell';
 import {TileComponent} from './tile.component';
+import {ComponentRef} from '@angular/core';
 
 /** interface for a tile, which is employed to handle the virtual dom */
 export interface Tile<CellValueType> {
@@ -24,6 +25,6 @@ export interface Tile<CellValueType> {
     visible: boolean;
 
     /** the renderer, responsible for rendering the tile */
-    renderer?: TileComponent<CellValueType>;
+    componentRef?: ComponentRef<TileComponent<CellValueType>>;
 }
 

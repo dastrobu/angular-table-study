@@ -385,10 +385,10 @@ export class MatrixViewComponent<CellValueType> implements OnInit, OnDestroy, On
         // so one should be careful, what to do here, since there is not change detection running.
         // TODO: this must be deactivated for proper hover event handling, if it is kept inside the zone, one could also use the angular way of attaching the listener
         // this.zone.runOutsideAngular(() => {
-            this.scrollListener = () => {
-                this.updateTileVisibility();
-            };
-            this.scrollableContainer.elementRef.nativeElement.addEventListener('scroll', this.scrollListener);
+        this.scrollListener = () => {
+            this.updateTileVisibility();
+        };
+        this.scrollableContainer.elementRef.nativeElement.addEventListener('scroll', this.scrollListener);
         // });
     }
 

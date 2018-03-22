@@ -1,4 +1,15 @@
-import {ChangeDetectionStrategy, Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild} from '@angular/core';
+import {
+    ChangeDetectionStrategy,
+    Component,
+    ComponentFactory,
+    ComponentFactoryResolver,
+    ElementRef,
+    Input,
+    OnChanges,
+    OnInit,
+    SimpleChanges,
+    ViewChild
+} from '@angular/core';
 import {MatrixViewConfig} from '../matrix-view-config';
 import {Log} from '../log';
 import {CellDirective} from '../directives/cell-directive';
@@ -6,6 +17,8 @@ import {BoxSize, flatten, Point2D, RowCol, RowsCols, Slice} from '../utils';
 import {Cell, CellEventEmitter} from '../cell/cell';
 import {Tile} from '../tile/tile';
 import * as _ from 'lodash';
+import {TileComponent} from '../tile/tile.component';
+import {CanvasComponent} from '../canvas/canvas.component';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -37,7 +50,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     public scrollPosition: Point2D = {left: 0, top: 0};
 
     @ViewChild('canvas')
-    public canvas: ElementRef;
+    public canvas: CanvasComponent;
 
     /** global config */
     @Input()
@@ -58,7 +71,11 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
     @Input()
     public cellEventEmitter: CellEventEmitter<CellValueType>;
 
-    constructor(public elementRef: ElementRef) {
+    private tileComponentComponentFactory: ComponentFactory<TileComponent<CellValueType>>;
+
+    constructor(public elementRef: ElementRef,
+                componentFactoryResolver: ComponentFactoryResolver) {
+        this.tileComponentComponentFactory = componentFactoryResolver.resolveComponentFactory(TileComponent);
     }
 
     ngOnInit() {
@@ -129,7 +146,6 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         });
         this.log.trace(() => `visibleTileRowMajorIndices: ${JSON.stringify(visibleTileRowMajorIndices)}`);
 
-        const updatedTiles: Tile<CellValueType>[] = [];
         this.tiles.forEach(tile => {
             // TODO DST: lookup could be improved
             const index = tile.index;
@@ -139,7 +155,15 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
                 if (tile.visible !== false) {
                     this.log.trace(() => `hiding tile ${JSON.stringify(index)}`);
                     tile.visible = false;
-                    updatedTiles.push(tile);
+                    if (tile.componentRef) {
+                        // destroying components should be done later...
+                        setTimeout(() => {
+                            if (tile.visible === false) {
+                                tile.componentRef.destroy();
+                                tile.componentRef = undefined;
+                            }
+                        }, 10);
+                    }
                 }
             } else {
                 // this tile should be rendered, check if it is visible already
@@ -147,17 +171,27 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
                 if (tile.visible !== true) {
                     this.log.trace(() => `showing tile ${JSON.stringify(index)}`);
                     tile.visible = true;
-                    updatedTiles.push(tile);
+                    setTimeout(() => {
+                        if (tile.visible === true) {
+                            const tileRef = this.canvas.viewContainerRef.createComponent(this.tileComponentComponentFactory);
+                            const instance: TileComponent<CellValueType> = tileRef.instance;
+                            instance.tile = tile;
+                            instance.cellDirective = this.cellDirective;
+                            instance.cellDirective = this.cellDirective;
+                            instance.cellEventEmitter = this.cellEventEmitter;
+                            // move to component
+                            const style = instance.elementRef.nativeElement.style;
+                            style.top = tile.position.top + 'px';
+                            style.left = tile.position.left + 'px';
+                            style.width = tile.size.width + 'px';
+                            style.height = tile.size.height + 'px';
+                            tile.componentRef = tileRef;
+                            tileRef.changeDetectorRef.detectChanges();
+                        }
+                    }, 10);
                 }
             }
         });
-        updatedTiles
-            .filter(tile => tile.renderer)
-            // one has two options here, do the change detection asynchronously, which won't block scrolling, but
-            // will not show the tiles immediately, or do it synchronously, which block scrolling sometimes, but
-            // shows tiles faster.
-            .forEach(tile => setTimeout(() => tile.renderer.detectChanges()));
-        // .forEach(tile => tile.renderer.detectChanges());
     }
 
     /** update the scroll position of the container */
@@ -169,13 +203,13 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
         if (!canvas) {
             return;
         }
-        const nativeElement = canvas.nativeElement;
+        const nativeElement = canvas.elementRef.nativeElement;
         nativeElement.style.top = scrollPosition.top + 'px';
         nativeElement.style.left = scrollPosition.left + 'px';
     }
 
     /**
-     * Update {@link #tiles tiles} based on the current {@link #cells cells} and {@link #cellSlice cell slice}.
+     * Update {@link #tiles tiles} based on the current {@link #cells cells} and {@link #cellsSlice cell slice}.
      */
     private updateTiles() {
         this.log.debug(() => `updateTiles()`);

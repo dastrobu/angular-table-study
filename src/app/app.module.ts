@@ -18,6 +18,7 @@ import {MatrixViewFixedTopRightCornerDirective} from './matrix-view/directives/m
 import {MatrixViewFixedTopLeftCornerDirective} from './matrix-view/directives/matrix-view-fixed-top-left-corner.directive';
 import {CellComponent} from './matrix-view/cell/cell.component';
 import {ContainerComponent} from './matrix-view/container/container.component';
+import {CanvasComponent} from './matrix-view/canvas/canvas.component';
 
 @NgModule({
     declarations: [
@@ -37,6 +38,10 @@ import {ContainerComponent} from './matrix-view/container/container.component';
         MatrixViewFixedBottomRightCornerDirective,
         CellComponent,
         ContainerComponent,
+        CanvasComponent,
+    ],
+    entryComponents: [
+        TileComponent,
     ],
     imports: [
         BrowserModule,

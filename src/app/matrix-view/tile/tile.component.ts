@@ -2,6 +2,7 @@ import {
     ChangeDetectionStrategy,
     ChangeDetectorRef,
     Component,
+    ElementRef,
     Input,
     OnChanges,
     OnDestroy,
@@ -11,11 +12,11 @@ import {
     ViewChild
 } from '@angular/core';
 import {CellTemplateContext} from '../cell/cell-template-context';
-import {MatrixViewCellDirective} from '../directives/matrix-view-cell.directive';
 import {Tile} from './tile';
 import {Log} from '../log';
 import * as _ from 'lodash';
 import {CellEventEmitter} from '../cell/cell';
+import {CellDirective} from '../directives/cell-directive';
 
 @Component({
     changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,17 +29,13 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
     private _tile: Tile<CellValueType>;
 
     @Input()
-    public cellDirective: MatrixViewCellDirective<CellValueType>;
+    public cellDirective: CellDirective<CellValueType>;
 
     @ViewChild('defaultTemplate')
     public defaultTemplate: TemplateRef<CellTemplateContext<CellValueType>>;
 
     @Input()
     public cellEventEmitter: CellEventEmitter<CellValueType>;
-
-    get tile(): Tile<CellValueType> {
-        return this._tile;
-    }
 
     /** @see #style */
     private _style: { [key: string]: string; } = {};
@@ -51,24 +48,14 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
     }
 
     @Input()
-    set tile(value: Tile<CellValueType>) {
-        this.log.trace(() => `set tile(${JSON.stringify(value ? value.index : undefined)})`);
-        // if the tile changes, unregister the renderer from the old tile, and register at the new tile.
-        if (this._tile) {
-            this._tile.renderer = undefined;
-        }
-        this._tile = value;
-        if (this._tile) {
-            this._tile.renderer = this as TileComponent<CellValueType>;
-        }
-    }
+    public tile: Tile<CellValueType>;
 
     /** style for cells */
     public get style(): { [key: string]: string; } {
         return this._style;
     }
 
-    constructor(private changeDetectionRef: ChangeDetectorRef) {
+    constructor(private changeDetectionRef: ChangeDetectorRef, public elementRef: ElementRef) {
     }
 
     /** explicitly call {@link ChangeDetectorRef#detectChanges} */
@@ -104,11 +91,6 @@ export class TileComponent<CellValueType> implements OnInit, OnChanges, OnDestro
 
     ngOnDestroy(): void {
         this.log.trace(() => `ngOnDestroy()`);
-        const tile = this._tile;
-        if (tile) {
-            // cleanup renderer on tile before destroying this tile
-            tile.renderer = undefined;
-        }
         this._tile = undefined;
         this.cellDirective = undefined;
     }

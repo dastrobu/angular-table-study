@@ -79,8 +79,8 @@ export class AppComponent implements OnInit {
     hoveredCell: Cell<string>;
 
     constructor() {
-        this.colCountFormControl.setValue(20);
-        this.rowCountFormControl.setValue(200);
+        this.colCountFormControl.setValue(100);
+        this.rowCountFormControl.setValue(1000);
         this.fixedTopFormControl.setValue(1);
         this.fixedBottomFormControl.setValue(0);
         this.fixedRightFormControl.setValue(0);
