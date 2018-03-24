@@ -87,14 +87,12 @@ Together with a border on the whole matrix view, this gives a nice grid.
 
 ## Features
 
-The features are either implemented or planned.
-
  * [Fixed Columns and Rows](#fixed-columns-and-rows) (implemented)
  * [Virtual DOM](#virtual-dom) (implemented)
- * [Selection Model](#selection-model) (planned)
- * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (planned)
- * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (planned)
- * [Colspan and Rowspan](#colspan-and-rowspan) (planned)
+ * [Selection Model](#selection-model) (not implemented)
+ * [Column Resizing via Drag and Drop](#column-resizing-via-drag-and-drop) (not implemented)
+ * [Column Permutation via Drag and Drop](#column-permutation-via-drag-and-drop) (not implemented)
+ * [Colspan and Rowspan](#colspan-and-rowspan) (not implemented)
 
 ### Fixed Columns and Rows
 
@@ -247,17 +245,18 @@ visibility state on scrolling. Hence, it is a trade of how big the tile size sho
 
 ### Selection Model
 
-*planned*
+*not implemented*
 
 One should be able to select columns, rows and cells in any combination.
    
 ### Column Resizing via Drag and Drop
 
-*planned*
+*not implemented*
+One should be able to resized columns, via drag and drop.
 
 ### Column Permutation via Drag and Drop
 
-*planned*
+*not implemented*
 
 It is not planned to implement a ful drag and drop handler and some special rendering. 
 Instead, an API is defined, which allows to implement drag and drop from, e.g. a 
@@ -265,12 +264,9 @@ header cell.
 
 ### Colspan and Rowspan
 
-*planned*
-
-### Grid
-
-*planned*
-It is possible to render a grid between rows and columns. 
+*not implemented*
+One should be able do define row span and col span. It is important to understand that this has implications 
+on the tile rendering, if cells span multiple tiles.
 
 ## Browser Support
 
