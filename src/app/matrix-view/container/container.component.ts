@@ -162,7 +162,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
                                 tile.componentRef.destroy();
                                 tile.componentRef = undefined;
                             }
-                        }, 10);
+                        });
                     }
                 }
             } else {
@@ -188,7 +188,7 @@ export class ContainerComponent<CellValueType> implements OnInit, OnChanges {
                             tile.componentRef = tileRef;
                             tileRef.changeDetectorRef.detectChanges();
                         }
-                    }, 10);
+                    });
                 }
             }
         });
