@@ -1,4 +1,4 @@
-# matrix-view
+# Angular Table Study
 This is an architecture study, to evaluate the implementation of a feature rich table representation of two 
 dimensional data, i.e. a matrix.
 
